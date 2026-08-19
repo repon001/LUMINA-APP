@@ -1,10 +1,11 @@
 # LUMINA APP
 
-A production-shaped starter for a TypeScript REST API: Express 5, Prisma 7,
-PostgreSQL, JWT auth with rotating refresh tokens.
+Backend for **LUMINA**, a cinematic travel-planning app: destinations, trips,
+animated itineraries, budgets and AI planning, served to a React Native client.
 
-It is not a blank template. Auth and user management are finished, wired and
-documented — they are the reference implementation every new module copies.
+Express 5, Prisma 7, PostgreSQL, JWT auth with rotating refresh tokens. Each
+feature is one module — route, controller, service, validation and its own docs —
+over shared infrastructure.
 
 ![Node](https://img.shields.io/badge/Node-24-339933?logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?logo=typescript&logoColor=white)
@@ -106,40 +107,53 @@ prisma/
   schema/              # split per domain, not one giant file
     schema.prisma      # generator + datasource
     user.prisma        # User, RefreshToken, Role
+    destination.prisma # Destination
+    place.prisma       # Place, PlaceCategory
 src/
   config/              # env.ts (validated), prisma.ts (client + adapter)
   middleware/          # auth, validate, error-handler
   modules/
-    auth/              # route · controller · service · validation · md
+    auth/              # route · controller · service · validation · md · api.md
     user/
-  utils/               # api-error, api-response, catch-async, jwt,
-                       # password, query-builder, request, common.validation
+    destination/
+  utils/               # api-error, api-response, catch-async, geo, jwt,
+                       # password, query-builder, request, slug, validation
   types/express.d.ts   # req.user
   app.ts               # middleware pipeline, /health, mounts /api
   routes.ts            # one line per module
   server.ts            # boot, DB ping, graceful shutdown
   seed.ts
 docs/ARCHITECTURE.md   # envelope, error codes, layering, list queries
+docs/POSTMAN.md        # environment, tokens, how to try any endpoint
 ```
 
 ## API overview
 
-| Method | Endpoint             | Access                                 |
-| ------ | -------------------- | -------------------------------------- |
-| GET    | `/health`            | Public — liveness, no database         |
-| GET    | `/health/ready`      | Public — readiness, pings the database |
-| POST   | `/api/auth/register` | Public                                 |
-| POST   | `/api/auth/login`    | Public                                 |
-| POST   | `/api/auth/refresh`  | Refresh token                          |
-| POST   | `/api/auth/logout`   | Refresh token                          |
-| GET    | `/api/auth/me`       | Authenticated                          |
-| GET    | `/api/users`         | ADMIN, MODERATOR                       |
-| POST   | `/api/users`         | ADMIN                                  |
-| GET    | `/api/users/:id`     | ADMIN, MODERATOR                       |
-| PATCH  | `/api/users/:id`     | ADMIN                                  |
+| Method | Endpoint                      | Access                                 |
+| ------ | ----------------------------- | -------------------------------------- |
+| GET    | `/health`                     | Public — liveness, no database         |
+| GET    | `/health/ready`               | Public — readiness, pings the database |
+| POST   | `/api/auth/register`          | Public                                 |
+| POST   | `/api/auth/login`             | Public                                 |
+| POST   | `/api/auth/refresh`           | Refresh token                          |
+| POST   | `/api/auth/logout`            | Refresh token                          |
+| GET    | `/api/auth/me`                | Authenticated                          |
+| GET    | `/api/users`                  | ADMIN, MODERATOR                       |
+| POST   | `/api/users`                  | ADMIN                                  |
+| GET    | `/api/users/:id`              | ADMIN, MODERATOR                       |
+| GET    | `/api/destinations`           | Public — list, search, filter          |
+| GET    | `/api/destinations/nearby`    | Public — proximity search              |
+| GET    | `/api/destinations/:idOrSlug` | Public — one destination               |
+| POST   | `/api/destinations`           | ADMIN                                  |
+| PATCH  | `/api/destinations/:id`       | ADMIN                                  |
+| DELETE | `/api/destinations/:id`       | ADMIN                                  |
+| PATCH  | `/api/users/:id`              | ADMIN                                  |
 
-Full contracts: [`auth.md`](src/modules/auth/auth.md),
-[`user.md`](src/modules/user/user.md).
+Full contracts, with Postman steps, live next to each module:
+[`auth.api.md`](src/modules/auth/auth.api.md),
+[`user.api.md`](src/modules/user/user.api.md),
+[`destination.api.md`](src/modules/destination/destination.api.md).
+Start with [`docs/POSTMAN.md`](docs/POSTMAN.md).
 
 ## Design decisions
 
