@@ -50,6 +50,11 @@ export class ApiError extends Error {
   static internal(message = "Something went wrong") {
     return new ApiError(500, message, "INTERNAL_ERROR");
   }
+
+  /** A dependency is down. Retryable, so it is not reported as a bug. */
+  static serviceUnavailable(message = "Service temporarily unavailable") {
+    return new ApiError(503, message, "SERVICE_UNAVAILABLE");
+  }
 }
 
 export const isApiError = (error: unknown): error is ApiError => error instanceof ApiError;

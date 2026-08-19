@@ -1,15 +1,20 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import hpp from "hpp";
 import morgan from "morgan";
 import { env } from "./config/env";
+import { prisma } from "./config/prisma";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
+import { globalLimiter } from "./middleware/rate-limit";
+import { requestId } from "./middleware/request-id";
 import routes from "./routes";
 import { ApiError } from "./utils/api-error";
 import { sendResponse } from "./utils/api-response";
+import { catchAsync } from "./utils/catch-async";
+
+morgan.token("id", (req) => (req as express.Request).requestId ?? "-");
 
 export const createApp = () => {
   const app = express();
@@ -17,12 +22,15 @@ export const createApp = () => {
   // Behind a load balancer this is what makes req.ip (and therefore rate
   // limiting) reflect the real client instead of the proxy.
   app.set("trust proxy", 1);
+  app.disable("x-powered-by");
 
+  app.use(requestId);
   app.use(helmet());
   app.use(
     cors({
       origin: env.corsOrigins.length > 0 ? env.corsOrigins : false,
       credentials: true,
+      exposedHeaders: ["x-request-id"],
     }),
   );
 
@@ -34,28 +42,17 @@ export const createApp = () => {
   app.use(hpp());
 
   if (env.NODE_ENV !== "test") {
-    app.use(morgan(env.isProduction ? "combined" : "dev"));
+    app.use(
+      morgan(env.isProduction ? ":id :remote-addr :method :url :status :response-time ms" : "dev"),
+    );
   }
 
-  app.use(
-    rateLimit({
-      windowMs: env.RATE_TIME_LIMIT * 60 * 1000,
-      limit: env.RATE_REQUEST_LIMIT,
-      standardHeaders: "draft-7",
-      legacyHeaders: false,
+  app.use(globalLimiter);
 
-      // Liveness probes would otherwise consume a client whole quota.
-      skip: (req) => req.path === "/health",
-
-      // The library default reply is plain text, which would be the only
-      // response in the API not using the shared envelope. Route it through
-      // the error handler instead.
-      handler: (_req, _res, next) => next(ApiError.tooManyRequests()),
-    }),
-  );
-
-  // Uses the shared envelope like every other endpoint, so uptime probes and
-  // API clients parse the same shape.
+  /**
+   * Liveness: is the process up? Deliberately does not touch the database - a
+   * failing dependency should not make an orchestrator kill a healthy process.
+   */
   app.get("/health", (_req, res) => {
     sendResponse(res, {
       statusCode: 200,
@@ -64,6 +61,24 @@ export const createApp = () => {
       data: { status: "ok", uptime: process.uptime() },
     });
   });
+
+  /** Readiness: can this instance actually serve traffic? */
+  app.get(
+    "/health/ready",
+    catchAsync(async (_req, res) => {
+      try {
+        await prisma.$queryRaw`SELECT 1`;
+      } catch {
+        throw ApiError.serviceUnavailable("Database is unreachable");
+      }
+      sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Service ready",
+        data: { status: "ready" },
+      });
+    }),
+  );
 
   app.use("/api", routes);
 
