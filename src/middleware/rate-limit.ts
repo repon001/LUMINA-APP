@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { env } from "../config/env";
 import { ApiError } from "../utils/api-error";
 
@@ -35,5 +35,21 @@ export const authLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   skipSuccessfulRequests: true,
+  handler: rejectWith429,
+});
+
+/**
+ * Applied to the AI routes.
+ *
+ * Every call here costs real money at the provider, so the budget is per
+ * signed-in user rather than per IP - a shared office network should not share
+ * one quota, and an unauthenticated caller never reaches these routes.
+ */
+export const aiLimiter = rateLimit({
+  windowMs,
+  limit: env.AI_RATE_REQUEST_LIMIT,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
   handler: rejectWith429,
 });
