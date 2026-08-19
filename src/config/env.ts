@@ -26,6 +26,9 @@ const envSchema = z.object({
 
   RATE_TIME_LIMIT: z.coerce.number().int().positive().default(15),
   RATE_REQUEST_LIMIT: z.coerce.number().int().positive().default(100),
+  // Auth endpoints get a much tighter budget than the rest of the API: they
+  // are the ones worth brute-forcing.
+  AUTH_RATE_REQUEST_LIMIT: z.coerce.number().int().positive().default(10),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -46,7 +49,9 @@ if (raw.NODE_ENV === "production") {
     raw[key].startsWith("replace_me"),
   );
   if (placeholders.length > 0) {
-    console.error(`Refusing to start in production with example secrets: ${placeholders.join(", ")}`);
+    console.error(
+      `Refusing to start in production with example secrets: ${placeholders.join(", ")}`,
+    );
     process.exit(1);
   }
 }
