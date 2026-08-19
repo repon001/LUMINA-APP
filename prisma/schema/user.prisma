@@ -15,6 +15,7 @@ model User {
   updatedAt    DateTime @updatedAt
 
   refreshTokens RefreshToken[]
+  trips         Trip[]
 
   @@index([role])
 }

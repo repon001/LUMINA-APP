@@ -26,7 +26,8 @@ model Destination {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  places Place[]
+  places    Place[]
+  tripStops TripStop[]
 
   @@index([countryCode])
   @@index([isFeatured, isActive])

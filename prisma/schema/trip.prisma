@@ -1,0 +1,87 @@
+enum TripStatus {
+  DRAFT
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum TripVisibility {
+  /// Only the owner (and, later, collaborators).
+  PRIVATE
+  /// Anyone holding the share code.
+  UNLISTED
+  /// Listed in public discovery.
+  PUBLIC
+}
+
+enum TransportMode {
+  FLIGHT
+  TRAIN
+  BUS
+  CAR
+  FERRY
+  WALK
+  OTHER
+}
+
+/// A journey: Dhaka to Tokyo to Kyoto to Osaka, with dates and a budget.
+model Trip {
+  id      String @id @default(cuid())
+  ownerId String
+  title   String
+  summary String?
+
+  coverImageUrl String?
+
+  /// A trip runs over days, not instants. Stored as DATE so a phone in Dhaka
+  /// and a server in UTC agree on which day the flight leaves.
+  startDate DateTime? @db.Date
+  endDate   DateTime? @db.Date
+
+  status     TripStatus     @default(DRAFT)
+  visibility TripVisibility @default(PRIVATE)
+
+  /// Unguessable id behind "anyone with the link". Null until sharing is on,
+  /// and regenerated to revoke a link that got out.
+  shareCode String? @unique
+
+  budgetTotal  Decimal? @db.Decimal(12, 2)
+  currencyCode String?  @db.Char(3)
+  tags         String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  stops TripStop[]
+
+  @@index([ownerId, status])
+  @@index([visibility, updatedAt])
+}
+
+/// One leg of the journey. `position` is what makes the route an order rather
+/// than a set: Dhaka(0) then Tokyo(1) then Kyoto(2).
+model TripStop {
+  id            String @id @default(cuid())
+  tripId        String
+  destinationId String
+  position      Int
+
+  arrivalDate   DateTime? @db.Date
+  departureDate DateTime? @db.Date
+
+  /// How you reach the *next* stop. Null on the last one.
+  transportToNext TransportMode?
+  notes           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trip        Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Restrict)
+
+  @@unique([tripId, position])
+  @@index([tripId])
+  @@index([destinationId])
+}
