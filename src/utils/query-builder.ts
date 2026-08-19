@@ -1,8 +1,9 @@
 import { ApiError } from "./api-error";
 
-export type FilterKind = "string" | "number" | "boolean" | "date" | "enum";
+export type FilterKind = "string" | "number" | "boolean" | "date" | "enum" | "stringList";
 
 export interface FilterRule {
+  /** `stringList` targets a text[] column: `?tags=sushi` means "contains". */
   kind: FilterKind;
   /** Allowed values, for `kind: "enum"`. */
   values?: readonly string[];
@@ -90,6 +91,8 @@ const coerce = (raw: string, rule: FilterRule, param: string): unknown => {
       }
       return parsed;
     }
+    case "stringList":
+      return raw;
     case "enum": {
       if (!rule.values?.includes(raw)) {
         throw ApiError.badRequest(
@@ -142,11 +145,20 @@ const buildWhere = (
         .map((part) => part.trim())
         .filter(Boolean)
         .map((part) => coerce(part, rule, param));
-      if (values.length > 0) conditions.push(nest(column, { in: values }));
+      if (values.length === 0) continue;
+
+      // On an array column, "in" reads as "overlaps with any of these".
+      conditions.push(
+        nest(column, rule.kind === "stringList" ? { hasSome: values } : { in: values }),
+      );
       continue;
     }
 
     const value = coerce(raw, rule, param);
+    if (rule.kind === "stringList" && !match.operator) {
+      conditions.push(nest(column, { has: value }));
+      continue;
+    }
     if (match.operator) {
       conditions.push(nest(column, { [OPERATORS[match.operator]]: value }));
     } else {

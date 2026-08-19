@@ -10,6 +10,7 @@ const CONFIG: ListQueryConfig = {
     createdAt: { kind: "date" },
     price: { kind: "number" },
     authorName: { kind: "string", column: "author.name" },
+    tags: { kind: "stringList" },
   },
   searchable: ["name", "email"],
   defaultSort: "-createdAt",
@@ -85,6 +86,16 @@ describe("filtering", () => {
 
   it("splits _in on commas", () => {
     expect(build({ role_in: "ADMIN,USER" }).where).toEqual({ role: { in: ["ADMIN", "USER"] } });
+  });
+
+  it("asks for containment on an array column", () => {
+    expect(build({ tags: "sushi" }).where).toEqual({ tags: { has: "sushi" } });
+  });
+
+  it("treats _in on an array column as overlap", () => {
+    expect(build({ tags_in: "sushi,ramen" }).where).toEqual({
+      tags: { hasSome: ["sushi", "ramen"] },
+    });
   });
 
   it("maps a param to a different column when configured", () => {
