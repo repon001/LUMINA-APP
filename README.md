@@ -116,6 +116,7 @@ src/
     auth/              # route · controller · service · validation · md · api.md
     user/
     destination/
+    place/
   utils/               # api-error, api-response, catch-async, geo, jwt,
                        # password, query-builder, request, slug, validation
   types/express.d.ts   # req.user
@@ -152,7 +153,8 @@ docs/POSTMAN.md        # environment, tokens, how to try any endpoint
 Full contracts, with Postman steps, live next to each module:
 [`auth.api.md`](src/modules/auth/auth.api.md),
 [`user.api.md`](src/modules/user/user.api.md),
-[`destination.api.md`](src/modules/destination/destination.api.md).
+[`destination.api.md`](src/modules/destination/destination.api.md),
+[`place.api.md`](src/modules/place/place.api.md).
 Start with [`docs/POSTMAN.md`](docs/POSTMAN.md).
 
 ## Design decisions
