@@ -19,6 +19,7 @@ const LIST_CONFIG: ListQueryConfig = {
     tags: { kind: "stringList" },
   },
   searchable: ["name", "country", "description"],
+  searchableLists: ["tags"],
   defaultSort: "name",
 };
 
