@@ -41,6 +41,22 @@ export const authenticate = async (req: Request, _res: Response, next: NextFunct
   next();
 };
 
+/**
+ * Attaches the user when a token is present, and carries on when it is not.
+ *
+ * For routes whose answer depends on who is asking: a public trip is readable by
+ * anonymous visitors, while its owner also sees it when it is private. A bad or
+ * expired token is still rejected - silently downgrading a signed-in user to an
+ * anonymous one would hide the fact that their session ended.
+ */
+export const authenticateOptional = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.headers.authorization) {
+    next();
+    return;
+  }
+  await authenticate(req, res, next);
+};
+
 /** Restricts a route to the given roles. Must run after `authenticate`. */
 export const authorize =
   (...roles: Role[]) =>

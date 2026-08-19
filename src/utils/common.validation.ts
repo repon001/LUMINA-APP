@@ -72,3 +72,20 @@ export const tags = (max = 20) =>
     .array(z.string().trim().toLowerCase().min(1).max(30))
     .max(max, `At most ${max} tags`)
     .transform((values) => [...new Set(values)]);
+
+/**
+ * A calendar day, sent as "2026-09-14" and stored at midnight UTC.
+ *
+ * A trip runs over days, not instants: taking a full timestamp would make the
+ * same departure fall on different dates for a phone in Dhaka and a server in
+ * UTC.
+ */
+export const dateOnly = (label = "Date") =>
+  z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, `${label} must look like 2026-09-14`)
+    .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)), {
+      message: `${label} is not a real date`,
+    })
+    .transform((value) => new Date(`${value}T00:00:00.000Z`));
