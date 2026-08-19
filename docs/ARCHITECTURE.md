@@ -49,7 +49,8 @@ status may be shared by several codes; the code never changes meaning.
 | `CONFLICT` | 409 | Unique constraint, e.g. a taken email |
 | `VALIDATION_ERROR` | 422 | Zod rejected the body/query/params |
 | `RATE_LIMITED` | 429 | Over the per-IP window |
-| `TRANSIENT_CONFLICT` | 503 | Contended transaction (`P2028`) — retry |
+| `TRANSIENT_CONFLICT` | 503 | Contended transaction (`P2028`, `P2034`) — retry |
+| `SERVICE_UNAVAILABLE` | 503 | A dependency is down (readiness probe) |
 | `DATABASE_ERROR` | 500 | Unmapped Prisma failure |
 | `INTERNAL_ERROR` | 500 | Anything unexpected — a bug |
 
@@ -57,7 +58,18 @@ Only an `ApiError` describes itself to the client. Anything else becomes a
 generic 500, so internal detail never leaks. Stacks appear on 5xx outside
 production only.
 
-## 3. Layers
+Failure bodies also carry `error.requestId`, matching the `x-request-id`
+response header — quote it in a bug report and the log line is one grep away.
+
+## 3. Request ids
+
+[`middleware/request-id.ts`](../src/middleware/request-id.ts) stamps every
+request with an id and echoes it as `x-request-id`. A caller-supplied id is
+reused so a trace survives across services, but only if it is short and matches
+`[\w.:-]+` — the value ends up in logs and response bodies, and an arbitrary
+header should not be able to inject into either.
+
+## 4. Layers
 
 ```
 route        mount path, auth gate, validation
@@ -72,7 +84,7 @@ prisma       schema and migrations
 A service never touches `req` or `res`, so it stays callable from a script, a
 job or a test. A controller never runs a query.
 
-## 4. List endpoints
+## 5. List endpoints
 
 Any listing goes through
 [`utils/query-builder.ts`](../src/utils/query-builder.ts), which turns a query
@@ -90,7 +102,7 @@ Unknown parameters are dropped, never forwarded — a client cannot filter or
 sort on a column the endpoint did not opt into. An unsortable field is a `400`
 naming the allowed set.
 
-## 5. Auth
+## 6. Auth
 
 - Access token: JWT `{ sub, email, role }`, 15m, sent as `Authorization: Bearer`.
 - Refresh token: JWT `{ sub, jti }`, 30d, stored as a SHA-256 hash, rotated on
@@ -100,7 +112,7 @@ naming the allowed set.
 
 See [`src/modules/auth/auth.md`](../src/modules/auth/auth.md).
 
-## 6. Adding a module
+## 7. Adding a module
 
 Copy the shape of `src/modules/user`:
 
@@ -124,3 +136,15 @@ Rules of thumb:
 - Throw `ApiError` for anything the client should understand; let everything
   else hit the 500 path.
 - Money in `Decimal` columns, validated with `money()` — never a JS float.
+
+## 8. Tests
+
+`tests/` mirrors the two things worth covering without a database:
+
+- **Pure logic** — the query builder, JWT and password helpers. Fast, exact.
+- **The pipeline** — supertest against `createApp()` for routes that answer
+  before any query: `/health`, unknown routes, validation failures, auth gates.
+
+`vitest.config.ts` sets the test environment, so the suite never reads a
+developer `.env` or reaches a real database. Anything that genuinely needs
+Postgres belongs in a separate, opt-in suite.

@@ -76,6 +76,21 @@ Sessions are also revoked when a password changes or an account is deactivated
 Elevating someone is an admin-only action on `PATCH /api/users/:id`. Drop the
 route entirely if the app is invite-only.
 
+### Credential routes are rate limited separately
+
+`/register`, `/login` and `/refresh` sit behind a tighter limiter
+(`AUTH_RATE_REQUEST_LIMIT`, default 10 per window) than the rest of the API.
+It skips successful requests, so a real user signing in and out repeatedly is
+never blocked while someone guessing passwords burns the budget in ten tries.
+
+### Expired token rows are pruned as they are replaced
+
+Issuing a token also deletes that user rows whose `expiresAt` has passed, so the
+table does not grow forever without a scheduled job. The trade-off: replaying a
+token that expired *and* was pruned lands in the "not found" branch and revokes
+the family, rather than returning "expired". Every session of that user is long
+dead by then, so the effect is a re-login either way.
+
 ### Login does not leak which emails exist
 
 A missing user and a wrong password both return the same `401 Invalid email or

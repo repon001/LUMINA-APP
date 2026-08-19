@@ -40,7 +40,9 @@ documented — they are the reference implementation every new module copies.
 | **Central error handling** | Zod and Prisma errors mapped to correct statuses; unexpected errors never leak internals. |
 | **Validated env** | Zod-parsed at boot. A missing secret fails at startup, not at 3am on the first request. |
 | **List query builder** | Paging, sorting, filtering with operators and search — from an allow-list, so clients cannot reach undeclared columns. |
-| **Security defaults** | helmet, CORS allow-list, hpp, per-IP rate limiting, bcrypt cost 12. |
+| **Security defaults** | helmet, CORS allow-list, hpp, per-IP rate limiting (tighter on auth), bcrypt cost 12. |
+| **Traceable requests** | Every request carries an `x-request-id`, logged with errors and returned in failure bodies. |
+| **Tests** | Vitest suite covering the query builder, auth helpers and the middleware pipeline. No database required. |
 | **Graceful shutdown** | SIGINT/SIGTERM drain the server and disconnect Prisma, with a hard 10s backstop. |
 | **Docker** | Multi-stage build, non-root runtime. |
 
@@ -124,7 +126,8 @@ docs/ARCHITECTURE.md   # envelope, error codes, layering, list queries
 
 | Method | Endpoint | Access |
 |---|---|---|
-| GET | `/health` | Public |
+| GET | `/health` | Public — liveness, no database |
+| GET | `/health/ready` | Public — readiness, pings the database |
 | POST | `/api/auth/register` | Public |
 | POST | `/api/auth/login` | Public |
 | POST | `/api/auth/refresh` | Refresh token |
@@ -155,6 +158,12 @@ Full contracts: [`auth.md`](src/modules/auth/auth.md),
   high-entropy; a slow hash would only add latency per refresh.
 - **Allow-list query building.** Unknown query params are dropped rather than
   passed through, so a client cannot filter on a column you did not expose.
+- **Liveness and readiness are separate.** `/health` never touches the database:
+  a failing dependency should not make an orchestrator kill a healthy process.
+  `/health/ready` is the one that pings Postgres.
+- **No ESLint (yet).** `typescript-eslint` does not support TypeScript 7 —
+  `strict` plus `noUnusedLocals`/`noUnusedParameters` covers most of it, and
+  Prettier handles formatting. Add ESLint when the peer range catches up.
 
 ## Adding a module
 
@@ -166,6 +175,17 @@ Add the model to `prisma/schema/post.prisma`, mount it in `src/routes.ts`, run
 `npm run prisma:migrate`. The full checklist is in
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#6-adding-a-module).
 
+## Tests
+
+```bash
+npm test
+```
+
+The suite needs no database or network: it covers the query builder, JWT and
+password helpers, and the middleware pipeline through supertest (`/health`,
+unknown routes, validation errors, auth gates). Environment for tests is set in
+`vitest.config.ts`, so a developer `.env` is never read.
+
 ## Scripts
 
 | Script | Does |
@@ -173,7 +193,10 @@ Add the model to `prisma/schema/post.prisma`, mount it in `src/routes.ts`, run
 | `npm run dev` | tsx watch, restarts on change |
 | `npm run build` | Type-check and emit to `dist/` |
 | `npm start` | Run the built server |
-| `npm run typecheck` | Types only, no emit |
+| `npm run typecheck` | Types only, no emit — covers `src/` and `tests/` |
+| `npm test` | Run the Vitest suite once |
+| `npm run test:watch` | Watch mode |
+| `npm run format` | Prettier over the repo |
 | `npm run prisma:generate` | Regenerate the client into `src/generated/prisma` |
 | `npm run prisma:migrate` | Create and apply a dev migration |
 | `npm run prisma:deploy` | Apply migrations (production) |
