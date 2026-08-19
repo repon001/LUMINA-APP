@@ -8,9 +8,9 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
 
-    /* Emit */
+    /* Emit. rootDir lives in tsconfig.prod.json: this config also type-checks
+       tests/, which sit outside src/. */
     "outDir": "./dist",
-    "rootDir": "./src",
     "sourceMap": true,
 
     /* Interop */
@@ -26,5 +26,5 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
 }
