@@ -72,11 +72,11 @@ curl http://localhost:4000/health
 
 Seeded accounts (password `Password123!`, override with `SEED_PASSWORD`):
 
-| Email                 | Role    |
-| --------------------- | ------- |
-| `admin@example.com`   | ADMIN   |
-| `manager@example.com` | MANAGER |
-| `user@example.com`    | USER    |
+| Email                   | Role      |
+| ----------------------- | --------- |
+| `admin@example.com`     | ADMIN     |
+| `moderator@example.com` | MODERATOR |
+| `user@example.com`      | USER      |
 
 ### Environment
 
@@ -133,9 +133,9 @@ docs/ARCHITECTURE.md   # envelope, error codes, layering, list queries
 | POST   | `/api/auth/refresh`  | Refresh token                          |
 | POST   | `/api/auth/logout`   | Refresh token                          |
 | GET    | `/api/auth/me`       | Authenticated                          |
-| GET    | `/api/users`         | ADMIN, MANAGER                         |
+| GET    | `/api/users`         | ADMIN, MODERATOR                       |
 | POST   | `/api/users`         | ADMIN                                  |
-| GET    | `/api/users/:id`     | ADMIN, MANAGER                         |
+| GET    | `/api/users/:id`     | ADMIN, MODERATOR                       |
 | PATCH  | `/api/users/:id`     | ADMIN                                  |
 
 Full contracts: [`auth.md`](src/modules/auth/auth.md),

@@ -15,7 +15,7 @@ const DEFAULT_PASSWORD = process.env["SEED_PASSWORD"] ?? "Password123!";
 
 const ACCOUNTS = [
   { name: "Ada Admin", email: "admin@example.com", role: Role.ADMIN },
-  { name: "Mia Manager", email: "manager@example.com", role: Role.MANAGER },
+  { name: "Mo Moderator", email: "moderator@example.com", role: Role.MODERATOR },
   { name: "Sam User", email: "user@example.com", role: Role.USER },
 ];
 

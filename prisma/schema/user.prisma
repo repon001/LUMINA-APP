@@ -1,6 +1,6 @@
 enum Role {
   ADMIN
-  MANAGER
+  MODERATOR
   USER
 }
 

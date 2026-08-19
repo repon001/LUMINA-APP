@@ -10,7 +10,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get("/", authorize(Role.ADMIN, Role.MANAGER), UserController.list);
+router.get("/", authorize(Role.ADMIN, Role.MODERATOR), UserController.list);
 
 router.post(
   "/",
@@ -21,7 +21,7 @@ router.post(
 
 router.get(
   "/:id",
-  authorize(Role.ADMIN, Role.MANAGER),
+  authorize(Role.ADMIN, Role.MODERATOR),
   validate({ params: idParamSchema }),
   UserController.getOne,
 );

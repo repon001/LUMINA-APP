@@ -19,7 +19,7 @@ Shared conventions live in [`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.m
 
 ### Roles
 
-`ADMIN`, `MANAGER`, `USER` — defined once in `prisma/schema/user.prisma` and
+`ADMIN`, `MODERATOR`, `USER` — defined once in `prisma/schema/user.prisma` and
 consumed by Zod via `z.enum(Role)`, so adding a role to the schema automatically
 extends validation. No hand-maintained list to drift.
 
@@ -78,12 +78,12 @@ central error handler.
 
 All routes require authentication.
 
-| Method | Path             | Access         |
-| ------ | ---------------- | -------------- |
-| GET    | `/api/users`     | ADMIN, MANAGER |
-| POST   | `/api/users`     | ADMIN          |
-| GET    | `/api/users/:id` | ADMIN, MANAGER |
-| PATCH  | `/api/users/:id` | ADMIN          |
+| Method | Path             | Access           |
+| ------ | ---------------- | ---------------- |
+| GET    | `/api/users`     | ADMIN, MODERATOR |
+| POST   | `/api/users`     | ADMIN            |
+| GET    | `/api/users/:id` | ADMIN, MODERATOR |
+| PATCH  | `/api/users/:id` | ADMIN            |
 
 Note there is no `DELETE`. Users are deactivated, not removed — records
 elsewhere reference them, and history must stay attributable. Add a hard delete
@@ -134,10 +134,10 @@ GET /api/users?role=USER&isActive=true&q=sam&sort=name&page=1&limit=20
 
 ```json
 {
-  "name": "Mia Manager",
-  "email": "manager@example.com",
+  "name": "Mo Moderator",
+  "email": "moderator@example.com",
   "password": "Password123!",
-  "role": "MANAGER"
+  "role": "MODERATOR"
 }
 ```
 
@@ -162,7 +162,7 @@ admin-only.
 Every field optional, but at least one is required:
 
 ```json
-{ "role": "MANAGER", "isActive": false }
+{ "role": "MODERATOR", "isActive": false }
 ```
 
 | Failure                | Code                                             |
@@ -180,6 +180,6 @@ Passing `password` re-hashes it and revokes all that user sessions.
 - Setting `role` to its current value on your own account is allowed — the guard
   only fires on an actual change.
 - Deactivating a user does not touch their historical records.
-- Managers can read users but cannot create or modify them.
+- Moderators can read users but cannot create or modify them.
 - Seeded accounts share one password from `SEED_PASSWORD` (default
   `Password123!`) — development only.
