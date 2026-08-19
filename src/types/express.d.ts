@@ -9,6 +9,8 @@ declare global {
         email: string;
         role: Role;
       };
+      /** Set by the `requestId` middleware, echoed as the `x-request-id` header. */
+      requestId?: string;
     }
   }
 }
