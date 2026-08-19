@@ -32,9 +32,10 @@ const fromPrismaError = (error: Prisma.PrismaClientKnownRequestError): ErrorBody
       };
     }
     case "P2028":
-      // Interactive transaction timed out, typically waiting on a contended
-      // row lock. Transient, so the client should retry rather than treat it
-      // as a server fault.
+    case "P2034":
+      // Transaction timed out or lost a write conflict, typically waiting on a
+      // contended row lock. Transient, so the client should retry rather than
+      // treat it as a server fault.
       return {
         code: "TRANSIENT_CONFLICT",
         message: "The database was busy; retry the request",
@@ -61,6 +62,7 @@ const statusForPrismaError = (error: Prisma.PrismaClientKnownRequestError): numb
     case "P2003":
       return 400;
     case "P2028":
+    case "P2034":
       return 503;
     default:
       return 500;
@@ -72,12 +74,7 @@ const statusForPrismaError = (error: Prisma.PrismaClientKnownRequestError): numb
  * same `statusCode` / `success` / `message` fields - so a client parses one
  * shape either way, with machine-readable `error.code` for branching.
  */
-export const errorHandler = (
-  error: unknown,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
-) => {
+export const errorHandler = (error: unknown, req: Request, res: Response, _next: NextFunction) => {
   let status = 500;
   let body: ErrorBody = { code: "INTERNAL_ERROR", message: "Something went wrong" };
 
@@ -96,9 +93,10 @@ export const errorHandler = (
     body = { code: "BAD_REQUEST", message: "Malformed database query" };
   }
 
-  // Unexpected failures are bugs - always log them with the stack.
+  // Unexpected failures are bugs - always log them, tagged with the request id
+  // so a report of "request abc123 failed" leads straight to the stack.
   if (status >= 500) {
-    console.error("[error]", error);
+    console.error(`[error] [${req.requestId ?? "-"}] ${req.method} ${req.originalUrl}`, error);
   }
 
   res.status(status).json({
@@ -107,6 +105,8 @@ export const errorHandler = (
     message: body.message,
     error: {
       code: body.code,
+      // Echoed so a user can quote it in a bug report.
+      ...(req.requestId ? { requestId: req.requestId } : {}),
       ...(body.details !== undefined ? { details: body.details } : {}),
       // Stacks only for genuine 5xx bugs, and never in production.
       ...(env.isProduction || status < 500
