@@ -1,4 +1,5 @@
 import { Router } from "express";
+import aiRoute from "./modules/ai/ai.route";
 import authRoute from "./modules/auth/auth.route";
 import destinationRoute from "./modules/destination/destination.route";
 import expenseRoute from "./modules/expense/expense.route";
@@ -11,6 +12,7 @@ import userRoute from "./modules/user/user.route";
 const router = Router();
 
 router.use("/auth", authRoute);
+router.use("/ai", aiRoute);
 router.use("/users", userRoute);
 router.use("/destinations", destinationRoute);
 router.use("/places", placeRoute);
