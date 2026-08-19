@@ -109,6 +109,7 @@ prisma/
     user.prisma        # User, RefreshToken, Role
     destination.prisma # Destination
     place.prisma       # Place, PlaceCategory
+    trip.prisma        # Trip, TripStop, status/visibility/transport
 src/
   config/              # env.ts (validated), prisma.ts (client + adapter)
   middleware/          # auth, validate, error-handler
@@ -117,6 +118,7 @@ src/
     user/
     destination/
     place/
+    trip/
   utils/               # api-error, api-response, catch-async, geo, jwt,
                        # password, query-builder, request, slug, validation
   types/express.d.ts   # req.user
@@ -154,7 +156,8 @@ Full contracts, with Postman steps, live next to each module:
 [`auth.api.md`](src/modules/auth/auth.api.md),
 [`user.api.md`](src/modules/user/user.api.md),
 [`destination.api.md`](src/modules/destination/destination.api.md),
-[`place.api.md`](src/modules/place/place.api.md).
+[`place.api.md`](src/modules/place/place.api.md),
+[`trip.api.md`](src/modules/trip/trip.api.md).
 Start with [`docs/POSTMAN.md`](docs/POSTMAN.md).
 
 ## Design decisions
