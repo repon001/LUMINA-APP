@@ -16,6 +16,7 @@ model User {
 
   refreshTokens RefreshToken[]
   trips         Trip[]
+  expenses      Expense[]
 
   @@index([role])
 }
