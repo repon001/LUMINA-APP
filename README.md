@@ -1,0 +1,204 @@
+# LUMINA APP
+
+A production-shaped starter for a TypeScript REST API: Express 5, Prisma 7,
+PostgreSQL, JWT auth with rotating refresh tokens.
+
+It is not a blank template. Auth and user management are finished, wired and
+documented — they are the reference implementation every new module copies.
+
+![Node](https://img.shields.io/badge/Node-24-339933?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?logo=typescript&logoColor=white)
+![Express](https://img.shields.io/badge/Express-5.2-000000?logo=express&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-7.9-2D3748?logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
+---
+
+## Contents
+
+- [What you get](#what-you-get)
+- [Getting started](#getting-started)
+- [Project structure](#project-structure)
+- [API overview](#api-overview)
+- [Design decisions](#design-decisions)
+- [Adding a module](#adding-a-module)
+- [Scripts](#scripts)
+- [Deployment](#deployment)
+- [Documentation](#documentation)
+- [License](#license)
+
+---
+
+## What you get
+
+| Capability | Summary |
+|---|---|
+| **Auth** | Register, login, `/me`, logout. Access token + rotating refresh token, replay detection, immediate revocation. |
+| **RBAC** | `authorize(...roles)` per route; roles come from the Prisma enum, so validation cannot drift. |
+| **One response envelope** | Success and failure share the same shape, with a stable `error.code` to branch on. |
+| **Central error handling** | Zod and Prisma errors mapped to correct statuses; unexpected errors never leak internals. |
+| **Validated env** | Zod-parsed at boot. A missing secret fails at startup, not at 3am on the first request. |
+| **List query builder** | Paging, sorting, filtering with operators and search — from an allow-list, so clients cannot reach undeclared columns. |
+| **Security defaults** | helmet, CORS allow-list, hpp, per-IP rate limiting, bcrypt cost 12. |
+| **Graceful shutdown** | SIGINT/SIGTERM drain the server and disconnect Prisma, with a hard 10s backstop. |
+| **Docker** | Multi-stage build, non-root runtime. |
+
+## Getting started
+
+### Prerequisites
+
+- Node.js ≥ 20 (24 recommended)
+- PostgreSQL 14+ running somewhere you can reach
+
+### Install
+
+```bash
+npm install
+cp .env.example .env      # then edit DATABASE_URL and the two JWT secrets
+npm run prisma:generate
+npm run prisma:migrate    # creates the schema and the first migration
+npm run seed              # optional: one account per role
+npm run dev
+```
+
+The API listens on `http://localhost:4000`. Check it:
+
+```bash
+curl http://localhost:4000/health
+```
+
+Seeded accounts (password `Password123!`, override with `SEED_PASSWORD`):
+
+| Email | Role |
+|---|---|
+| `admin@example.com` | ADMIN |
+| `manager@example.com` | MANAGER |
+| `user@example.com` | USER |
+
+### Environment
+
+Every variable is validated in [`src/config/env.ts`](src/config/env.ts); the app
+refuses to boot on a bad one, and refuses to boot production with the example
+secrets.
+
+| Variable | Default | Notes |
+|---|---|---|
+| `NODE_ENV` | `development` | |
+| `PORT` | `4000` | |
+| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated allow-list |
+| `DATABASE_URL` | — | Required |
+| `DIRECT_URL` | — | Only when `DATABASE_URL` is a pooled endpoint |
+| `JWT_ACCESS_SECRET` | — | Required, ≥ 16 chars |
+| `JWT_REFRESH_SECRET` | — | Required, ≥ 16 chars, must differ |
+| `ACCESS_TOKEN_TTL` | `15m` | |
+| `REFRESH_TOKEN_TTL` | `30d` | |
+| `COOKIE_SECURE` | `false` | Set `true` behind HTTPS |
+| `RATE_TIME_LIMIT` | `15` | Window, minutes |
+| `RATE_REQUEST_LIMIT` | `100` | Requests per window per IP |
+
+## Project structure
+
+```
+prisma/
+  schema/              # split per domain, not one giant file
+    schema.prisma      # generator + datasource
+    user.prisma        # User, RefreshToken, Role
+src/
+  config/              # env.ts (validated), prisma.ts (client + adapter)
+  middleware/          # auth, validate, error-handler
+  modules/
+    auth/              # route · controller · service · validation · md
+    user/
+  utils/               # api-error, api-response, catch-async, jwt,
+                       # password, query-builder, request, common.validation
+  types/express.d.ts   # req.user
+  app.ts               # middleware pipeline, /health, mounts /api
+  routes.ts            # one line per module
+  server.ts            # boot, DB ping, graceful shutdown
+  seed.ts
+docs/ARCHITECTURE.md   # envelope, error codes, layering, list queries
+```
+
+## API overview
+
+| Method | Endpoint | Access |
+|---|---|---|
+| GET | `/health` | Public |
+| POST | `/api/auth/register` | Public |
+| POST | `/api/auth/login` | Public |
+| POST | `/api/auth/refresh` | Refresh token |
+| POST | `/api/auth/logout` | Refresh token |
+| GET | `/api/auth/me` | Authenticated |
+| GET | `/api/users` | ADMIN, MANAGER |
+| POST | `/api/users` | ADMIN |
+| GET | `/api/users/:id` | ADMIN, MANAGER |
+| PATCH | `/api/users/:id` | ADMIN |
+
+Full contracts: [`auth.md`](src/modules/auth/auth.md),
+[`user.md`](src/modules/user/user.md).
+
+## Design decisions
+
+- **Modules, not layers-as-folders.** Everything about a feature — route,
+  controller, service, validation, docs — sits in one directory. Adding a
+  feature touches one folder plus one line in `routes.ts`.
+- **Services never see Express.** They take plain arguments and return plain
+  data, so they are callable from a job, a script or a test.
+- **One envelope, always.** Even the rate limiter routes through the error
+  handler, so no endpoint answers in a different shape.
+- **Prisma 7 driver adapter.** The connection string lives in `prisma.config.ts`
+  and `src/config/prisma.ts`, not in `schema.prisma`.
+- **Transaction timeouts raised to 10s/20s.** Prisma 5s defaults assume a local
+  database; a managed instance a region away spends that on round trips alone.
+- **Refresh tokens hashed with SHA-256, not bcrypt.** They are already
+  high-entropy; a slow hash would only add latency per refresh.
+- **Allow-list query building.** Unknown query params are dropped rather than
+  passed through, so a client cannot filter on a column you did not expose.
+
+## Adding a module
+
+```bash
+cp -r src/modules/user src/modules/post   # then rename inside
+```
+
+Add the model to `prisma/schema/post.prisma`, mount it in `src/routes.ts`, run
+`npm run prisma:migrate`. The full checklist is in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#6-adding-a-module).
+
+## Scripts
+
+| Script | Does |
+|---|---|
+| `npm run dev` | tsx watch, restarts on change |
+| `npm run build` | Type-check and emit to `dist/` |
+| `npm start` | Run the built server |
+| `npm run typecheck` | Types only, no emit |
+| `npm run prisma:generate` | Regenerate the client into `src/generated/prisma` |
+| `npm run prisma:migrate` | Create and apply a dev migration |
+| `npm run prisma:deploy` | Apply migrations (production) |
+| `npm run prisma:studio` | Browse the database |
+| `npm run seed` | Upsert the demo accounts |
+
+## Deployment
+
+```bash
+docker build -t lumina-app .
+docker run --rm -p 4000:4000 \
+  -e DATABASE_URL=... -e JWT_ACCESS_SECRET=... -e JWT_REFRESH_SECRET=... \
+  lumina-app
+```
+
+Run `npx prisma migrate deploy` against the target database as a release step.
+The image builds in two stages and runs as the non-root `node` user.
+
+## Documentation
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — envelope, error codes,
+  layering, list queries, how to add a module
+- [`src/modules/auth/auth.md`](src/modules/auth/auth.md)
+- [`src/modules/user/user.md`](src/modules/user/user.md)
+
+## License
+
+MIT

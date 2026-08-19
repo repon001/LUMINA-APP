@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    /* Language and environment */
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    /* package.json has no "type": "module", so nodenext emits CommonJS. */
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+
+    /* Emit */
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "sourceMap": true,
+
+    /* Interop */
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+
+    /* Type checking */
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"]
+}

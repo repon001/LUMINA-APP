@@ -1,0 +1,12 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+// Prisma 7 no longer accepts `url` here. The connection string lives in
+// prisma.config.ts for Migrate, and is passed to PrismaClient via the
+// pg driver adapter at runtime (see src/config/prisma.ts).
+datasource db {
+  provider = "postgresql"
+}
