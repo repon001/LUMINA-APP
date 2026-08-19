@@ -13,6 +13,7 @@ const CONFIG: ListQueryConfig = {
     tags: { kind: "stringList" },
   },
   searchable: ["name", "email"],
+  searchableLists: ["tags"],
   defaultSort: "-createdAt",
   defaultLimit: 20,
   maxLimit: 50,
@@ -122,8 +123,14 @@ describe("search", () => {
       OR: [
         { name: { contains: "ada", mode: "insensitive" } },
         { email: { contains: "ada", mode: "insensitive" } },
+        { tags: { has: "ada" } },
       ],
     });
+  });
+
+  it("matches an array column by membership, lowercased like stored tags", () => {
+    const where = build({ q: "Ramen" }).where as { OR: Record<string, unknown>[] };
+    expect(where.OR).toContainEqual({ tags: { has: "ramen" } });
   });
 
   it("combines search with filters under AND", () => {

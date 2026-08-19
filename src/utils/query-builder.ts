@@ -18,6 +18,12 @@ export interface ListQueryConfig {
   filterable?: Readonly<Record<string, FilterRule>>;
   /** Fields scanned by `?q=` using a case-insensitive partial match. */
   searchable?: readonly string[];
+  /**
+   * text[] columns `?q=` should also check, by exact membership. A partial match
+   * is not available on an array column, and "ram" matching the tag "ramen"
+   * would need a scan of every row.
+   */
+  searchableLists?: readonly string[];
   /** Applied when the client sends no `sort`. Defaults to newest first. */
   defaultSort?: string;
   defaultLimit?: number;
@@ -167,10 +173,14 @@ const buildWhere = (
   }
 
   const search = firstValue(query["q"])?.trim();
-  if (search && config.searchable?.length) {
-    conditions.push({
-      OR: config.searchable.map((field) => nest(field, { contains: search, mode: "insensitive" })),
-    });
+  if (search) {
+    const matches = [
+      ...(config.searchable ?? []).map((field) =>
+        nest(field, { contains: search, mode: "insensitive" }),
+      ),
+      ...(config.searchableLists ?? []).map((field) => nest(field, { has: search.toLowerCase() })),
+    ];
+    if (matches.length > 0) conditions.push({ OR: matches });
   }
 
   if (conditions.length === 0) return {};
