@@ -1,0 +1,52 @@
+enum PlaceCategory {
+  ATTRACTION
+  HOTEL
+  RESTAURANT
+  ACTIVITY
+  SHOPPING
+  NIGHTLIFE
+  TRANSPORT
+  OTHER
+}
+
+/// Something you can visit, sleep in, eat at or book, inside a destination.
+model Place {
+  id            String        @id @default(cuid())
+  destinationId String
+  /// Unique within its destination, e.g. "shibuya-crossing".
+  slug          String
+  name          String
+  category      PlaceCategory
+  description   String?
+  address       String?
+
+  latitude  Decimal @db.Decimal(9, 6)
+  longitude Decimal @db.Decimal(9, 6)
+
+  /// 1 (cheap) to 4 (splurge). Comparable across currencies, unlike `price`.
+  priceLevel   Int?
+  /// Nightly rate for a hotel, ticket price for an attraction. Null if unknown.
+  price        Decimal? @db.Decimal(10, 2)
+  currencyCode String?  @db.Char(3)
+
+  imageUrl String?
+  website  String?
+  phone    String?
+  tags     String[]
+
+  /// Denormalised from Review and written in the same transaction, so listing
+  /// a hundred places does not mean a hundred aggregate queries.
+  ratingAvg   Decimal @default(0) @db.Decimal(3, 2)
+  ratingCount Int     @default(0)
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([destinationId, slug])
+  @@index([destinationId, category])
+  @@index([latitude, longitude])
+  @@index([category, ratingAvg])
+}
