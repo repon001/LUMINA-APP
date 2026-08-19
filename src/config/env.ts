@@ -36,6 +36,26 @@ const envSchema = z.object({
   // Auth endpoints get a much tighter budget than the rest of the API: they
   // are the ones worth brute-forcing.
   AUTH_RATE_REQUEST_LIMIT: z.coerce.number().int().positive().default(10),
+
+  // ---- payments ----
+  /** Where gateways send the customer back, and where they call our webhooks. */
+  PUBLIC_BASE_URL: z.string().default("http://localhost:4000"),
+  /** Deep links the app handles after checkout. */
+  PAYMENT_SUCCESS_URL: z.string().default("http://localhost:3000/payments/success"),
+  PAYMENT_CANCEL_URL: z.string().default("http://localhost:3000/payments/cancel"),
+
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+
+  SSLCOMMERZ_STORE_ID: z.string().optional(),
+  SSLCOMMERZ_STORE_PASSWORD: z.string().optional(),
+  SSLCOMMERZ_SANDBOX: boolish(true),
+
+  /**
+   * Lets the stub gateway be used without keys. Refused in production, where a
+   * payment that settles itself would be a hole rather than a convenience.
+   */
+  PAYMENT_ALLOW_STUB: boolish(true),
 });
 
 const parsed = envSchema.safeParse(process.env);
