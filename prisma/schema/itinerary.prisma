@@ -1,0 +1,70 @@
+enum ItineraryItemKind {
+  /// A place from the catalogue: a temple, a museum, a viewpoint.
+  PLACE
+  /// Getting from one place to the next.
+  TRANSPORT
+  MEAL
+  ACCOMMODATION
+  ACTIVITY
+  /// A free-form reminder with no place attached.
+  NOTE
+}
+
+/// One day of a trip: "Day 3, Kyoto". Days are numbered rather than dated, so an
+/// itinerary can be planned before the traveller commits to a departure date.
+model TripDay {
+  id     String @id @default(cuid())
+  tripId String
+
+  /// 1-based, and contiguous: renumbered whenever a day is added or removed.
+  dayNumber Int
+  /// Set only once the trip has real dates. Derived, never authoritative.
+  date      DateTime? @db.Date
+  title     String?
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trip  Trip            @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  items ItineraryItem[]
+
+  @@unique([tripId, dayNumber])
+  @@index([tripId])
+}
+
+/// A single card on the day's timeline.
+model ItineraryItem {
+  id        String @id @default(cuid())
+  tripDayId String
+  position  Int
+
+  kind  ItineraryItemKind @default(PLACE)
+  title String
+
+  /// Optional: an item can be "lunch somewhere near the station" before the
+  /// traveller has picked one. SetNull rather than Cascade, so removing a place
+  /// from the catalogue empties the reference instead of deleting the plan.
+  placeId String?
+
+  /// Wall-clock times at the destination, "09:30". Deliberately not timestamps:
+  /// a plan says "09:30 local", and storing an instant would shift that as soon
+  /// as the trip crossed a timezone.
+  startTime String? @db.VarChar(5)
+  endTime   String? @db.VarChar(5)
+
+  cost          Decimal?       @db.Decimal(10, 2)
+  currencyCode  String?        @db.Char(3)
+  transportMode TransportMode?
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  day   TripDay @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
+  place Place?  @relation(fields: [placeId], references: [id], onDelete: SetNull)
+
+  @@unique([tripDayId, position])
+  @@index([tripDayId])
+  @@index([placeId])
+}

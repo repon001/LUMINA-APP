@@ -43,7 +43,8 @@ model Place {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  destination Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  destination    Destination     @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  itineraryItems ItineraryItem[]
 
   @@unique([destinationId, slug])
   @@index([destinationId, category])

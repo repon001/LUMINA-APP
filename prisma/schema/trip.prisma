@@ -55,6 +55,7 @@ model Trip {
 
   owner User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   stops TripStop[]
+  days  TripDay[]
 
   @@index([ownerId, status])
   @@index([visibility, updatedAt])
