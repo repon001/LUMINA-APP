@@ -34,6 +34,10 @@ export const createApp = () => {
     }),
   );
 
+  // Stripe signs the exact bytes it sent, so this one route must see the body
+  // unparsed. It has to be registered before the JSON parser to win the match.
+  app.use("/api/payments/webhook/stripe", express.raw({ type: "*/*", limit: "1mb" }));
+
   app.use(express.json({ limit: "1mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
