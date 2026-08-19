@@ -40,6 +40,13 @@ const issueTokens = async (user: { id: string; email: string; role: Role }) => {
     },
   });
 
+  // Drop this user expired rows while we are already writing for them. Keeps
+  // the table from growing forever without a scheduled job to run and monitor.
+  // Scoped to one indexed user, so it stays a cheap delete.
+  await prisma.refreshToken.deleteMany({
+    where: { userId: user.id, expiresAt: { lt: new Date() } },
+  });
+
   return { accessToken, refreshToken };
 };
 
