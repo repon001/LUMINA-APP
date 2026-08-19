@@ -85,9 +85,7 @@ export const updateUser = async (id: string, input: UpdateUserInput, actingUserI
       ...(input.email !== undefined ? { email: input.email } : {}),
       ...(input.role !== undefined ? { role: input.role } : {}),
       ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
-      ...(input.password !== undefined
-        ? { passwordHash: await hashPassword(input.password) }
-        : {}),
+      ...(input.password !== undefined ? { passwordHash: await hashPassword(input.password) } : {}),
     },
     select: USER_SELECT,
   });
