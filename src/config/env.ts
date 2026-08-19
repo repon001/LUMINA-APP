@@ -56,6 +56,26 @@ const envSchema = z.object({
    * payment that settles itself would be a hole rather than a convenience.
    */
   PAYMENT_ALLOW_STUB: boolish(true),
+
+  // ---- AI (OpenRouter) ----
+  OPENROUTER_API_KEY: z.string().optional(),
+  /**
+   * Any model id OpenRouter serves. Swap it for a cheaper tier
+   * (anthropic/claude-haiku-4.5, google/gemini-flash-*) without touching code.
+   */
+  OPENROUTER_MODEL: z.string().default("anthropic/claude-opus-5"),
+  /** Generating a week-long itinerary takes longer than a normal request. */
+  OPENROUTER_TIMEOUT_MS: z.coerce.number().int().positive().default(90_000),
+  /**
+   * How much of the token budget a reasoning model may spend thinking.
+   *
+   * Off by default. Reasoning improves a plan, but it is drawn from the same
+   * `max_tokens` as the answer - and a model that thinks until the budget runs
+   * out returns nothing at all, which is worse than a shallower plan.
+   */
+  OPENROUTER_REASONING: z.enum(["off", "low", "medium", "high"]).default("off"),
+  /** AI calls cost money per request, so they get their own tighter budget. */
+  AI_RATE_REQUEST_LIMIT: z.coerce.number().int().positive().default(20),
 });
 
 const parsed = envSchema.safeParse(process.env);
