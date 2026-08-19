@@ -113,74 +113,8 @@ The refresh token is set as an HTTP-only cookie **and** returned in the body:
 
 ## How the API works
 
-> **Envelope.** Every response also carries `statusCode`, `success` and
-> `message`; error bodies add `error.code`. The first example shows the full
-> shape; later ones are abbreviated to their `data` payload.
-
-### `POST /api/auth/register` — public
-
-```json
-{ "name": "Sam User", "email": "sam@example.com", "password": "Password123!" }
-```
-
-`201` with the same payload as login. Role is always `USER`.
-
-| Failure                                 | Code                   |
-| --------------------------------------- | ---------------------- |
-| Name < 2 chars, bad email, password < 8 | `422 VALIDATION_ERROR` |
-| Email taken                             | `409 CONFLICT`         |
-
-### `POST /api/auth/login` — public
-
-```json
-{ "email": "admin@example.com", "password": "Password123!" }
-```
-
-`200`
-
-```json
-{
-  "statusCode": 200,
-  "success": true,
-  "message": "Signed in",
-  "data": {
-    "user": { "id": "clx…", "name": "Ada Admin", "email": "admin@example.com", "role": "ADMIN" },
-    "accessToken": "eyJ…",
-    "refreshToken": "eyJ…"
-  }
-}
-```
-
-Also sets the `refresh_token` cookie.
-
-| Failure                             | Code                   |
-| ----------------------------------- | ---------------------- |
-| Bad email format / missing password | `422 VALIDATION_ERROR` |
-| Unknown email or wrong password     | `401 UNAUTHORIZED`     |
-| Account deactivated                 | `403 FORBIDDEN`        |
-
-### `POST /api/auth/refresh`
-
-No body required if the cookie is present; otherwise
-`{ "refreshToken": "eyJ…" }`. Returns the same shape as login, with a **new**
-access and refresh token.
-
-| Failure                  | Code                                                                 |
-| ------------------------ | -------------------------------------------------------------------- |
-| No token supplied        | `401 Missing refresh token`                                          |
-| Expired / bad signature  | `401 Refresh token is invalid or expired`                            |
-| Already rotated (replay) | `401 Refresh token has already been used` — **all sessions revoked** |
-| Account deactivated      | `403 FORBIDDEN`                                                      |
-
-### `POST /api/auth/logout`
-
-Revokes the presented token and clears the cookie. Deliberately idempotent —
-logging out with no token, or an already-revoked one, still returns `200`.
-Logout ends _this_ session only; other devices stay signed in.
-
-### `GET /api/auth/me` — authenticated
-
-Returns `id`, `name`, `email`, `role`, `isActive`, `createdAt`.
+Endpoints, payloads, failure codes and Postman steps live in
+[auth.api.md](./auth.api.md).
 
 ---
 
