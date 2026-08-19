@@ -3,7 +3,12 @@ import { PrismaClient, type Prisma } from "../generated/prisma/client";
 import { env } from "./env";
 
 // Prisma 7 connects through a driver adapter rather than a `url` in the schema.
-const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
+// The explicit schema matters when the database holds more than this app: without
+// it, queries fall back to `search_path` and can hit a same-named table next door.
+const adapter = new PrismaPg(
+  { connectionString: env.DATABASE_URL },
+  { schema: env.DATABASE_SCHEMA },
+);
 
 export const prisma = new PrismaClient({
   adapter,

@@ -17,6 +17,13 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().default("http://localhost:3000"),
 
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  /**
+   * The Postgres schema the app owns. The `?schema=` parameter in the URL only
+   * reaches Prisma Migrate; the runtime client resolves unqualified names
+   * through `search_path`, which is `public` on most servers. Naming it here
+   * makes every generated query explicit about where its tables live.
+   */
+  DATABASE_SCHEMA: z.string().min(1).default("public"),
 
   JWT_ACCESS_SECRET: z.string().min(16, "JWT_ACCESS_SECRET must be at least 16 characters"),
   JWT_REFRESH_SECRET: z.string().min(16, "JWT_REFRESH_SECRET must be at least 16 characters"),
