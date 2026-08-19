@@ -110,6 +110,7 @@ prisma/
     destination.prisma # Destination
     place.prisma       # Place, PlaceCategory
     trip.prisma        # Trip, TripStop, status/visibility/transport
+    itinerary.prisma   # TripDay, ItineraryItem
 src/
   config/              # env.ts (validated), prisma.ts (client + adapter)
   middleware/          # auth, validate, error-handler
@@ -119,7 +120,8 @@ src/
     destination/
     place/
     trip/
-  utils/               # api-error, api-response, catch-async, geo, jwt,
+    itinerary/
+  utils/               # api-error, api-response, catch-async, geo, jwt, ordering,
                        # password, query-builder, request, slug, validation
   types/express.d.ts   # req.user
   app.ts               # middleware pipeline, /health, mounts /api
@@ -157,7 +159,8 @@ Full contracts, with Postman steps, live next to each module:
 [`user.api.md`](src/modules/user/user.api.md),
 [`destination.api.md`](src/modules/destination/destination.api.md),
 [`place.api.md`](src/modules/place/place.api.md),
-[`trip.api.md`](src/modules/trip/trip.api.md).
+[`trip.api.md`](src/modules/trip/trip.api.md),
+[`itinerary.api.md`](src/modules/itinerary/itinerary.api.md).
 Start with [`docs/POSTMAN.md`](docs/POSTMAN.md).
 
 ## Design decisions
