@@ -57,6 +57,7 @@ model Trip {
   stops    TripStop[]
   days     TripDay[]
   expenses Expense[]
+  payments Payment[]
 
   @@index([ownerId, status])
   @@index([visibility, updatedAt])

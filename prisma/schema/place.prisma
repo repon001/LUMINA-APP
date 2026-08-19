@@ -46,6 +46,7 @@ model Place {
   destination    Destination     @relation(fields: [destinationId], references: [id], onDelete: Cascade)
   itineraryItems ItineraryItem[]
   expenses       Expense[]
+  payments       Payment[]
 
   @@unique([destinationId, slug])
   @@index([destinationId, category])
