@@ -14,7 +14,14 @@ parses one thing.
   "success": true,
   "message": "Users fetched",
   "data": [],
-  "meta": { "page": 1, "limit": 20, "total": 0, "totalPages": 0, "hasNext": false, "hasPrev": false }
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 0,
+    "totalPages": 0,
+    "hasNext": false,
+    "hasPrev": false
+  }
 }
 ```
 
@@ -40,19 +47,19 @@ Built by [`utils/api-response.ts`](../src/utils/api-response.ts)
 `error.code` is the stable, machine-readable value clients branch on. The HTTP
 status may be shared by several codes; the code never changes meaning.
 
-| Code | Status | Raised when |
-|---|---|---|
-| `BAD_REQUEST` | 400 | Malformed input a schema cannot express |
-| `UNAUTHORIZED` | 401 | Missing, invalid or expired access token |
-| `FORBIDDEN` | 403 | Authenticated but the role is not allowed |
-| `NOT_FOUND` | 404 | No such record, or no such route |
-| `CONFLICT` | 409 | Unique constraint, e.g. a taken email |
-| `VALIDATION_ERROR` | 422 | Zod rejected the body/query/params |
-| `RATE_LIMITED` | 429 | Over the per-IP window |
-| `TRANSIENT_CONFLICT` | 503 | Contended transaction (`P2028`, `P2034`) — retry |
-| `SERVICE_UNAVAILABLE` | 503 | A dependency is down (readiness probe) |
-| `DATABASE_ERROR` | 500 | Unmapped Prisma failure |
-| `INTERNAL_ERROR` | 500 | Anything unexpected — a bug |
+| Code                  | Status | Raised when                                      |
+| --------------------- | ------ | ------------------------------------------------ |
+| `BAD_REQUEST`         | 400    | Malformed input a schema cannot express          |
+| `UNAUTHORIZED`        | 401    | Missing, invalid or expired access token         |
+| `FORBIDDEN`           | 403    | Authenticated but the role is not allowed        |
+| `NOT_FOUND`           | 404    | No such record, or no such route                 |
+| `CONFLICT`            | 409    | Unique constraint, e.g. a taken email            |
+| `VALIDATION_ERROR`    | 422    | Zod rejected the body/query/params               |
+| `RATE_LIMITED`        | 429    | Over the per-IP window                           |
+| `TRANSIENT_CONFLICT`  | 503    | Contended transaction (`P2028`, `P2034`) — retry |
+| `SERVICE_UNAVAILABLE` | 503    | A dependency is down (readiness probe)           |
+| `DATABASE_ERROR`      | 500    | Unmapped Prisma failure                          |
+| `INTERNAL_ERROR`      | 500    | Anything unexpected — a bug                      |
 
 Only an `ApiError` describes itself to the client. Anything else becomes a
 generic 500, so internal detail never leaks. Stacks appear on 5xx outside
@@ -90,13 +97,13 @@ Any listing goes through
 [`utils/query-builder.ts`](../src/utils/query-builder.ts), which turns a query
 string into Prisma `findMany` arguments against an allow-list.
 
-| Param | Meaning |
-|---|---|
-| `page`, `limit` | 1-based paging; `limit` capped by `maxLimit` (default 100) |
-| `sort` | `sort=-createdAt,name` — leading `-` is descending |
-| `q` | Case-insensitive partial match across `searchable` fields |
-| `<field>` | Exact match, if declared in `filterable` |
-| `<field>_gte` `_gt` `_lte` `_lt` `_ne` `_in` | Range / negation / comma-separated set |
+| Param                                        | Meaning                                                    |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| `page`, `limit`                              | 1-based paging; `limit` capped by `maxLimit` (default 100) |
+| `sort`                                       | `sort=-createdAt,name` — leading `-` is descending         |
+| `q`                                          | Case-insensitive partial match across `searchable` fields  |
+| `<field>`                                    | Exact match, if declared in `filterable`                   |
+| `<field>_gte` `_gt` `_lte` `_lt` `_ne` `_in` | Range / negation / comma-separated set                     |
 
 Unknown parameters are dropped, never forwarded — a client cannot filter or
 sort on a column the endpoint did not opt into. An unsortable field is a `400`

@@ -32,19 +32,19 @@ documented — they are the reference implementation every new module copies.
 
 ## What you get
 
-| Capability | Summary |
-|---|---|
-| **Auth** | Register, login, `/me`, logout. Access token + rotating refresh token, replay detection, immediate revocation. |
-| **RBAC** | `authorize(...roles)` per route; roles come from the Prisma enum, so validation cannot drift. |
-| **One response envelope** | Success and failure share the same shape, with a stable `error.code` to branch on. |
-| **Central error handling** | Zod and Prisma errors mapped to correct statuses; unexpected errors never leak internals. |
-| **Validated env** | Zod-parsed at boot. A missing secret fails at startup, not at 3am on the first request. |
-| **List query builder** | Paging, sorting, filtering with operators and search — from an allow-list, so clients cannot reach undeclared columns. |
-| **Security defaults** | helmet, CORS allow-list, hpp, per-IP rate limiting (tighter on auth), bcrypt cost 12. |
-| **Traceable requests** | Every request carries an `x-request-id`, logged with errors and returned in failure bodies. |
-| **Tests** | Vitest suite covering the query builder, auth helpers and the middleware pipeline. No database required. |
-| **Graceful shutdown** | SIGINT/SIGTERM drain the server and disconnect Prisma, with a hard 10s backstop. |
-| **Docker** | Multi-stage build, non-root runtime. |
+| Capability                 | Summary                                                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Auth**                   | Register, login, `/me`, logout. Access token + rotating refresh token, replay detection, immediate revocation.         |
+| **RBAC**                   | `authorize(...roles)` per route; roles come from the Prisma enum, so validation cannot drift.                          |
+| **One response envelope**  | Success and failure share the same shape, with a stable `error.code` to branch on.                                     |
+| **Central error handling** | Zod and Prisma errors mapped to correct statuses; unexpected errors never leak internals.                              |
+| **Validated env**          | Zod-parsed at boot. A missing secret fails at startup, not at 3am on the first request.                                |
+| **List query builder**     | Paging, sorting, filtering with operators and search — from an allow-list, so clients cannot reach undeclared columns. |
+| **Security defaults**      | helmet, CORS allow-list, hpp, per-IP rate limiting (tighter on auth), bcrypt cost 12.                                  |
+| **Traceable requests**     | Every request carries an `x-request-id`, logged with errors and returned in failure bodies.                            |
+| **Tests**                  | Vitest suite covering the query builder, auth helpers and the middleware pipeline. No database required.               |
+| **Graceful shutdown**      | SIGINT/SIGTERM drain the server and disconnect Prisma, with a hard 10s backstop.                                       |
+| **Docker**                 | Multi-stage build, non-root runtime.                                                                                   |
 
 ## Getting started
 
@@ -72,11 +72,11 @@ curl http://localhost:4000/health
 
 Seeded accounts (password `Password123!`, override with `SEED_PASSWORD`):
 
-| Email | Role |
-|---|---|
-| `admin@example.com` | ADMIN |
+| Email                 | Role    |
+| --------------------- | ------- |
+| `admin@example.com`   | ADMIN   |
 | `manager@example.com` | MANAGER |
-| `user@example.com` | USER |
+| `user@example.com`    | USER    |
 
 ### Environment
 
@@ -84,20 +84,20 @@ Every variable is validated in [`src/config/env.ts`](src/config/env.ts); the app
 refuses to boot on a bad one, and refuses to boot production with the example
 secrets.
 
-| Variable | Default | Notes |
-|---|---|---|
-| `NODE_ENV` | `development` | |
-| `PORT` | `4000` | |
-| `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated allow-list |
-| `DATABASE_URL` | — | Required |
-| `DIRECT_URL` | — | Only when `DATABASE_URL` is a pooled endpoint |
-| `JWT_ACCESS_SECRET` | — | Required, ≥ 16 chars |
-| `JWT_REFRESH_SECRET` | — | Required, ≥ 16 chars, must differ |
-| `ACCESS_TOKEN_TTL` | `15m` | |
-| `REFRESH_TOKEN_TTL` | `30d` | |
-| `COOKIE_SECURE` | `false` | Set `true` behind HTTPS |
-| `RATE_TIME_LIMIT` | `15` | Window, minutes |
-| `RATE_REQUEST_LIMIT` | `100` | Requests per window per IP |
+| Variable             | Default                 | Notes                                         |
+| -------------------- | ----------------------- | --------------------------------------------- |
+| `NODE_ENV`           | `development`           |                                               |
+| `PORT`               | `4000`                  |                                               |
+| `CORS_ORIGINS`       | `http://localhost:3000` | Comma-separated allow-list                    |
+| `DATABASE_URL`       | —                       | Required                                      |
+| `DIRECT_URL`         | —                       | Only when `DATABASE_URL` is a pooled endpoint |
+| `JWT_ACCESS_SECRET`  | —                       | Required, ≥ 16 chars                          |
+| `JWT_REFRESH_SECRET` | —                       | Required, ≥ 16 chars, must differ             |
+| `ACCESS_TOKEN_TTL`   | `15m`                   |                                               |
+| `REFRESH_TOKEN_TTL`  | `30d`                   |                                               |
+| `COOKIE_SECURE`      | `false`                 | Set `true` behind HTTPS                       |
+| `RATE_TIME_LIMIT`    | `15`                    | Window, minutes                               |
+| `RATE_REQUEST_LIMIT` | `100`                   | Requests per window per IP                    |
 
 ## Project structure
 
@@ -124,19 +124,19 @@ docs/ARCHITECTURE.md   # envelope, error codes, layering, list queries
 
 ## API overview
 
-| Method | Endpoint | Access |
-|---|---|---|
-| GET | `/health` | Public — liveness, no database |
-| GET | `/health/ready` | Public — readiness, pings the database |
-| POST | `/api/auth/register` | Public |
-| POST | `/api/auth/login` | Public |
-| POST | `/api/auth/refresh` | Refresh token |
-| POST | `/api/auth/logout` | Refresh token |
-| GET | `/api/auth/me` | Authenticated |
-| GET | `/api/users` | ADMIN, MANAGER |
-| POST | `/api/users` | ADMIN |
-| GET | `/api/users/:id` | ADMIN, MANAGER |
-| PATCH | `/api/users/:id` | ADMIN |
+| Method | Endpoint             | Access                                 |
+| ------ | -------------------- | -------------------------------------- |
+| GET    | `/health`            | Public — liveness, no database         |
+| GET    | `/health/ready`      | Public — readiness, pings the database |
+| POST   | `/api/auth/register` | Public                                 |
+| POST   | `/api/auth/login`    | Public                                 |
+| POST   | `/api/auth/refresh`  | Refresh token                          |
+| POST   | `/api/auth/logout`   | Refresh token                          |
+| GET    | `/api/auth/me`       | Authenticated                          |
+| GET    | `/api/users`         | ADMIN, MANAGER                         |
+| POST   | `/api/users`         | ADMIN                                  |
+| GET    | `/api/users/:id`     | ADMIN, MANAGER                         |
+| PATCH  | `/api/users/:id`     | ADMIN                                  |
 
 Full contracts: [`auth.md`](src/modules/auth/auth.md),
 [`user.md`](src/modules/user/user.md).
@@ -188,20 +188,20 @@ unknown routes, validation errors, auth gates). Environment for tests is set in
 
 ## Scripts
 
-| Script | Does |
-|---|---|
-| `npm run dev` | tsx watch, restarts on change |
-| `npm run build` | Type-check and emit to `dist/` |
-| `npm start` | Run the built server |
-| `npm run typecheck` | Types only, no emit — covers `src/` and `tests/` |
-| `npm test` | Run the Vitest suite once |
-| `npm run test:watch` | Watch mode |
-| `npm run format` | Prettier over the repo |
+| Script                    | Does                                              |
+| ------------------------- | ------------------------------------------------- |
+| `npm run dev`             | tsx watch, restarts on change                     |
+| `npm run build`           | Type-check and emit to `dist/`                    |
+| `npm start`               | Run the built server                              |
+| `npm run typecheck`       | Types only, no emit — covers `src/` and `tests/`  |
+| `npm test`                | Run the Vitest suite once                         |
+| `npm run test:watch`      | Watch mode                                        |
+| `npm run format`          | Prettier over the repo                            |
 | `npm run prisma:generate` | Regenerate the client into `src/generated/prisma` |
-| `npm run prisma:migrate` | Create and apply a dev migration |
-| `npm run prisma:deploy` | Apply migrations (production) |
-| `npm run prisma:studio` | Browse the database |
-| `npm run seed` | Upsert the demo accounts |
+| `npm run prisma:migrate`  | Create and apply a dev migration                  |
+| `npm run prisma:deploy`   | Apply migrations (production)                     |
+| `npm run prisma:studio`   | Browse the database                               |
+| `npm run seed`            | Upsert the demo accounts                          |
 
 ## Deployment
 

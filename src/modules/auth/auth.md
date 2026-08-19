@@ -8,12 +8,12 @@ Shared conventions (response envelope, error codes) live in
 
 ## Files
 
-| File | Role |
-|---|---|
-| `auth.route.ts` | Mounts the five endpoints, applies validation |
-| `auth.controller.ts` | Reads/writes the refresh cookie, shapes responses |
-| `auth.service.ts` | Register, login, rotation, revocation, current user |
-| `auth.validation.ts` | `loginSchema`, `registerSchema` |
+| File                 | Role                                                |
+| -------------------- | --------------------------------------------------- |
+| `auth.route.ts`      | Mounts the five endpoints, applies validation       |
+| `auth.controller.ts` | Reads/writes the refresh cookie, shapes responses   |
+| `auth.service.ts`    | Register, login, rotation, revocation, current user |
+| `auth.validation.ts` | `loginSchema`, `registerSchema`                     |
 
 Supporting code: [`utils/jwt.ts`](../../utils/jwt.ts) (signing, hashing),
 [`utils/password.ts`](../../utils/password.ts) (bcrypt),
@@ -40,7 +40,7 @@ database dump contains nothing replayable.
 
 SHA-256 rather than bcrypt on purpose: the token is already high-entropy random
 data, so a slow hash would add latency to every refresh without adding
-meaningful protection. Bcrypt is for *passwords*, where the input is low-entropy
+meaningful protection. Bcrypt is for _passwords_, where the input is low-entropy
 and guessable.
 
 ### Rotation, and what happens on replay
@@ -58,7 +58,7 @@ verify JWT  →  look up SHA-256 hash
 ```
 
 Revoked rows are kept rather than deleted, so a replayed token is normally
-*found* — which is what makes the theft detectable at all.
+_found_ — which is what makes the theft detectable at all.
 
 ### Revocation is immediate
 
@@ -87,7 +87,7 @@ never blocked while someone guessing passwords burns the budget in ten tries.
 
 Issuing a token also deletes that user rows whose `expiresAt` has passed, so the
 table does not grow forever without a scheduled job. The trade-off: replaying a
-token that expired *and* was pruned lands in the "not found" branch and revokes
+token that expired _and_ was pruned lands in the "not found" branch and revokes
 the family, rather than returning "expired". Every session of that user is long
 dead by then, so the effect is a re-login either way.
 
@@ -97,7 +97,7 @@ A missing user and a wrong password both return the same `401 Invalid email or
 password`. A deactivated account is the one case that differs (`403`), because
 the user needs to know to contact an admin rather than retry their password.
 
-### Cookie *and* body
+### Cookie _and_ body
 
 The refresh token is set as an HTTP-only cookie **and** returned in the body:
 
@@ -125,10 +125,10 @@ The refresh token is set as an HTTP-only cookie **and** returned in the body:
 
 `201` with the same payload as login. Role is always `USER`.
 
-| Failure | Code |
-|---|---|
+| Failure                                 | Code                   |
+| --------------------------------------- | ---------------------- |
 | Name < 2 chars, bad email, password < 8 | `422 VALIDATION_ERROR` |
-| Email taken | `409 CONFLICT` |
+| Email taken                             | `409 CONFLICT`         |
 
 ### `POST /api/auth/login` — public
 
@@ -153,11 +153,11 @@ The refresh token is set as an HTTP-only cookie **and** returned in the body:
 
 Also sets the `refresh_token` cookie.
 
-| Failure | Code |
-|---|---|
+| Failure                             | Code                   |
+| ----------------------------------- | ---------------------- |
 | Bad email format / missing password | `422 VALIDATION_ERROR` |
-| Unknown email or wrong password | `401 UNAUTHORIZED` |
-| Account deactivated | `403 FORBIDDEN` |
+| Unknown email or wrong password     | `401 UNAUTHORIZED`     |
+| Account deactivated                 | `403 FORBIDDEN`        |
 
 ### `POST /api/auth/refresh`
 
@@ -165,18 +165,18 @@ No body required if the cookie is present; otherwise
 `{ "refreshToken": "eyJ…" }`. Returns the same shape as login, with a **new**
 access and refresh token.
 
-| Failure | Code |
-|---|---|
-| No token supplied | `401 Missing refresh token` |
-| Expired / bad signature | `401 Refresh token is invalid or expired` |
+| Failure                  | Code                                                                 |
+| ------------------------ | -------------------------------------------------------------------- |
+| No token supplied        | `401 Missing refresh token`                                          |
+| Expired / bad signature  | `401 Refresh token is invalid or expired`                            |
 | Already rotated (replay) | `401 Refresh token has already been used` — **all sessions revoked** |
-| Account deactivated | `403 FORBIDDEN` |
+| Account deactivated      | `403 FORBIDDEN`                                                      |
 
 ### `POST /api/auth/logout`
 
 Revokes the presented token and clears the cookie. Deliberately idempotent —
 logging out with no token, or an already-revoked one, still returns `200`.
-Logout ends *this* session only; other devices stay signed in.
+Logout ends _this_ session only; other devices stay signed in.
 
 ### `GET /api/auth/me` — authenticated
 
@@ -187,8 +187,8 @@ Returns `id`, `name`, `email`, `role`, `isActive`, `createdAt`.
 ## Using auth on other routes
 
 ```ts
-router.use(authenticate);                          // 401 if no valid token
-router.post("/", authorize(Role.ADMIN), handler);  // 403 if wrong role
+router.use(authenticate); // 401 if no valid token
+router.post("/", authorize(Role.ADMIN), handler); // 403 if wrong role
 ```
 
 `authorize` must run after `authenticate`; on its own it returns `401` because

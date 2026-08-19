@@ -6,12 +6,12 @@ Shared conventions live in [`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.m
 
 ## Files
 
-| File | Role |
-|---|---|
-| `user.route.ts` | Endpoints and role gates |
-| `user.controller.ts` | Request → service, response envelope |
-| `user.service.ts` | Listing, creation, updates, session revocation |
-| `user.validation.ts` | `createUserSchema`, `updateUserSchema` |
+| File                 | Role                                           |
+| -------------------- | ---------------------------------------------- |
+| `user.route.ts`      | Endpoints and role gates                       |
+| `user.controller.ts` | Request → service, response envelope           |
+| `user.service.ts`    | Listing, creation, updates, session revocation |
+| `user.validation.ts` | `createUserSchema`, `updateUserSchema`         |
 
 ---
 
@@ -62,7 +62,7 @@ Two self-targeted edits are refused:
 - changing your own role
 
 Otherwise the last remaining admin could demote themselves and leave the system
-with no one able to manage users. Admins *can* still change their own name,
+with no one able to manage users. Admins _can_ still change their own name,
 email and password.
 
 ### Email uniqueness
@@ -78,12 +78,12 @@ central error handler.
 
 All routes require authentication.
 
-| Method | Path | Access |
-|---|---|---|
-| GET | `/api/users` | ADMIN, MANAGER |
-| POST | `/api/users` | ADMIN |
-| GET | `/api/users/:id` | ADMIN, MANAGER |
-| PATCH | `/api/users/:id` | ADMIN |
+| Method | Path             | Access         |
+| ------ | ---------------- | -------------- |
+| GET    | `/api/users`     | ADMIN, MANAGER |
+| POST   | `/api/users`     | ADMIN          |
+| GET    | `/api/users/:id` | ADMIN, MANAGER |
+| PATCH  | `/api/users/:id` | ADMIN          |
 
 Note there is no `DELETE`. Users are deactivated, not removed — records
 elsewhere reference them, and history must stay attributable. Add a hard delete
@@ -93,11 +93,11 @@ only if nothing else points at a user.
 
 Runs through the shared [query builder](../../utils/query-builder.ts).
 
-| Capability | Values |
-|---|---|
-| Sort | `name`, `email`, `role`, `createdAt`, `updatedAt` (default `-createdAt`) |
-| Filter | `role` (enum), `isActive` (bool), `createdAt` (date, with `_gte`/`_lte`/…) |
-| Search `q` | `name`, `email` |
+| Capability | Values                                                                     |
+| ---------- | -------------------------------------------------------------------------- |
+| Sort       | `name`, `email`, `role`, `createdAt`, `updatedAt` (default `-createdAt`)   |
+| Filter     | `role` (enum), `isActive` (bool), `createdAt` (date, with `_gte`/`_lte`/…) |
+| Search `q` | `name`, `email`                                                            |
 
 ```
 GET /api/users?role=USER&isActive=true&q=sam&sort=name&page=1&limit=20
@@ -109,30 +109,48 @@ GET /api/users?role=USER&isActive=true&q=sam&sort=name&page=1&limit=20
   "success": true,
   "message": "Users fetched",
   "data": [
-    { "id": "clx…", "name": "Sam User", "email": "user@example.com",
-      "role": "USER", "isActive": true,
-      "createdAt": "2026-08-01T10:00:00.000Z", "updatedAt": "2026-08-01T10:00:00.000Z" }
+    {
+      "id": "clx…",
+      "name": "Sam User",
+      "email": "user@example.com",
+      "role": "USER",
+      "isActive": true,
+      "createdAt": "2026-08-01T10:00:00.000Z",
+      "updatedAt": "2026-08-01T10:00:00.000Z"
+    }
   ],
-  "meta": { "page": 1, "limit": 20, "total": 1, "totalPages": 1, "hasNext": false, "hasPrev": false }
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrev": false
+  }
 }
 ```
 
 ### `POST /api/users` — ADMIN
 
 ```json
-{ "name": "Mia Manager", "email": "manager@example.com", "password": "Password123!", "role": "MANAGER" }
+{
+  "name": "Mia Manager",
+  "email": "manager@example.com",
+  "password": "Password123!",
+  "role": "MANAGER"
+}
 ```
 
 `201` with the created user. Rules: name 2–120 chars, valid email, password ≥ 8
 chars, role must be one of the three.
 
-| Failure | Code |
-|---|---|
-| Field rule broken | `422 VALIDATION_ERROR` |
-| Email taken | `409 CONFLICT` |
-| Caller is not ADMIN | `403 FORBIDDEN` |
+| Failure             | Code                   |
+| ------------------- | ---------------------- |
+| Field rule broken   | `422 VALIDATION_ERROR` |
+| Email taken         | `409 CONFLICT`         |
+| Caller is not ADMIN | `403 FORBIDDEN`        |
 
-Unlike `/api/auth/register`, this route *does* take a role — which is why it is
+Unlike `/api/auth/register`, this route _does_ take a role — which is why it is
 admin-only.
 
 ### `GET /api/users/:id`
@@ -147,13 +165,13 @@ Every field optional, but at least one is required:
 { "role": "MANAGER", "isActive": false }
 ```
 
-| Failure | Code |
-|---|---|
-| Empty body | `422` — "Provide at least one field to update" |
-| New email taken | `409 CONFLICT` |
-| Deactivating yourself | `400` — "You cannot deactivate your own account" |
-| Changing your own role | `400` — "You cannot change your own role" |
-| No such user | `404 NOT_FOUND` |
+| Failure                | Code                                             |
+| ---------------------- | ------------------------------------------------ |
+| Empty body             | `422` — "Provide at least one field to update"   |
+| New email taken        | `409 CONFLICT`                                   |
+| Deactivating yourself  | `400` — "You cannot deactivate your own account" |
+| Changing your own role | `400` — "You cannot change your own role"        |
+| No such user           | `404 NOT_FOUND`                                  |
 
 Passing `password` re-hashes it and revokes all that user sessions.
 
