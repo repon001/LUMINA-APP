@@ -1,6 +1,7 @@
 import { TripStatus, TripVisibility, type Prisma } from "../../generated/prisma/client";
 import { prisma, type PrismaTx } from "../../config/prisma";
 import { ApiError } from "../../utils/api-error";
+import { renumber, validateFullOrder } from "../../utils/ordering";
 import { buildListQuery, type ListQueryConfig } from "../../utils/query-builder";
 import type { AuthenticatedUser } from "../../utils/request";
 import { findEditableTrip, findViewableTrip, newShareCode, type TripViewer } from "./trip.access";
@@ -81,23 +82,9 @@ const DETAIL_INCLUDE = {
   },
 } satisfies Prisma.TripInclude;
 
-/**
- * Rewrites positions from 0 upwards, in the order given.
- *
- * `@@unique([tripId, position])` means positions cannot be shuffled in place -
- * the first update would collide with a row that has not moved yet. So every
- * stop is parked above the range first, then written back down.
- */
-const PARK_OFFSET = 10_000;
-
-const renumber = async (tx: PrismaTx, orderedIds: string[]) => {
-  for (const [index, id] of orderedIds.entries()) {
-    await tx.tripStop.update({ where: { id }, data: { position: PARK_OFFSET + index } });
-  }
-  for (const [index, id] of orderedIds.entries()) {
-    await tx.tripStop.update({ where: { id }, data: { position: index } });
-  }
-};
+/** See utils/ordering.ts for why positions are rewritten in two passes. */
+const renumberStops = (tx: PrismaTx, orderedIds: readonly string[]) =>
+  renumber((id, position) => tx.tripStop.update({ where: { id }, data: { position } }), orderedIds);
 
 const nextPosition = async (tx: PrismaTx, tripId: string) => {
   const last = await tx.tripStop.findFirst({
@@ -307,7 +294,7 @@ export const addStop = async (tripId: string, viewer: TripViewer, input: AddStop
       });
       const order = others.map((stop) => stop.id);
       order.splice(target, 0, created.id);
-      await renumber(tx, order);
+      await renumberStops(tx, order);
     }
 
     return tx.tripStop.findUniqueOrThrow({
@@ -362,7 +349,7 @@ export const removeStop = async (tripId: string, stopId: string, viewer: TripVie
       orderBy: { position: "asc" },
       select: { id: true },
     });
-    await renumber(
+    await renumberStops(
       tx,
       remaining.map((row) => row.id),
     );
@@ -377,19 +364,19 @@ export const reorderStops = async (
   await findEditableTrip(tripId, viewer);
 
   const stops = await prisma.tripStop.findMany({ where: { tripId }, select: { id: true } });
-  const known = new Set(stops.map((stop) => stop.id));
-  const requested = new Set(input.stopIds);
-
-  // The whole route must be listed exactly once: a partial order would leave the
-  // remaining stops with no defined place to go.
-  if (requested.size !== input.stopIds.length) {
-    throw ApiError.badRequest("Stop ids must not repeat");
+  const check = validateFullOrder(
+    input.stopIds,
+    stops.map((stop) => stop.id),
+  );
+  if (!check.ok) {
+    throw ApiError.badRequest(
+      check.reason === "duplicate"
+        ? "Stop ids must not repeat"
+        : "Send every stop of this trip exactly once, in the new order",
+    );
   }
-  if (requested.size !== known.size || input.stopIds.some((id) => !known.has(id))) {
-    throw ApiError.badRequest("Send every stop of this trip exactly once, in the new order");
-  }
 
-  await prisma.$transaction((tx) => renumber(tx, input.stopIds));
+  await prisma.$transaction((tx) => renumberStops(tx, input.stopIds));
 
   return prisma.tripStop.findMany({
     where: { tripId },
