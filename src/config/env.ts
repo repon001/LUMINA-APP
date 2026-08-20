@@ -82,6 +82,11 @@ const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().optional(),
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
+  /** Photographs of cities and places, kept apart from avatars. */
+  CLOUDINARY_IMAGE_FOLDER: z.string().default("lumina/catalogue"),
+  /** How many files one upload request may carry. */
+  MAX_IMAGES_PER_UPLOAD: z.coerce.number().int().positive().max(10).default(5),
+
   /** Everything this app uploads lands under one folder in the account. */
   CLOUDINARY_FOLDER: z.string().default("lumina/avatars"),
   /** Bigger than any sensible avatar, small enough to refuse a video. */
