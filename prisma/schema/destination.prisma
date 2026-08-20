@@ -36,6 +36,7 @@ model Destination {
 
   places    Place[]
   tripStops TripStop[]
+  images    CatalogueImage[]
 
   /// SetNull, not Cascade: a deleted account must not take the city it
   /// contributed down with it.

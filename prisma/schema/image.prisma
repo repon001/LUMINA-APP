@@ -1,0 +1,33 @@
+/// A photograph of a city or a place.
+///
+/// Kept in its own table rather than as an array of URLs on the parent, because
+/// each file needs Cloudinary's `publicId` to be deletable, and knowing who
+/// uploaded one is what makes it removable later without guesswork.
+model CatalogueImage {
+  id       String @id @default(cuid())
+  url      String
+  /// Cloudinary's handle. Null for an image we did not upload - the automatic
+  /// fallback links to somebody else's CDN and there is nothing for us to
+  /// delete.
+  publicId String?
+
+  /// Exactly one of these is set. Prisma cannot express that as a constraint,
+  /// so the service is the only thing that writes here and it always sets one.
+  destinationId String?
+  placeId       String?
+
+  /// Null when the picture came from the automatic fallback rather than a
+  /// person.
+  uploadedById String?
+
+  /// Lowest first. The first two are what a place's detail screen shows.
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  destination Destination? @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  place       Place?       @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  uploadedBy  User?        @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([destinationId, position])
+  @@index([placeId, position])
+}

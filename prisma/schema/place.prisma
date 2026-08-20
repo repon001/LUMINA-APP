@@ -55,6 +55,7 @@ model Place {
   itineraryItems ItineraryItem[]
   expenses       Expense[]
   payments       Payment[]
+  images         CatalogueImage[]
 
   /// SetNull, not Cascade: a deleted account must not take the places it
   /// contributed down with it.

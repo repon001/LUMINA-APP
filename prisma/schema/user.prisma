@@ -30,6 +30,7 @@ model User {
   submittedDestinations Destination[] @relation("DestinationSubmissions")
   reviewedDestinations  Destination[] @relation("DestinationReviews")
   submittedPlaces       Place[]       @relation("PlaceSubmissions")
+  uploadedImages        CatalogueImage[]
   reviewedPlaces        Place[]       @relation("PlaceReviews")
 
   @@index([role])
