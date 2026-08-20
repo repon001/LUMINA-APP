@@ -53,11 +53,7 @@ const handler = multer({
  */
 export const uploadAvatar: RequestHandler = (req, res, next) => {
   if (!isMediaConfigured) {
-    next(
-      ApiError.serviceUnavailable(
-        "Image uploads are not configured on this server",
-      ),
-    );
+    next(ApiError.serviceUnavailable("Image uploads are not configured on this server"));
     return;
   }
 

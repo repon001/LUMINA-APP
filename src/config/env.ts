@@ -69,7 +69,11 @@ const envSchema = z.object({
   /** Everything this app uploads lands under one folder in the account. */
   CLOUDINARY_FOLDER: z.string().default("lumina/avatars"),
   /** Bigger than any sensible avatar, small enough to refuse a video. */
-  AVATAR_MAX_BYTES: z.coerce.number().int().positive().default(5 * 1024 * 1024),
+  AVATAR_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(5 * 1024 * 1024),
 
   // ---- AI (OpenRouter) ----
   OPENROUTER_API_KEY: z.string().optional(),

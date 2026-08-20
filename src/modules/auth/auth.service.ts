@@ -18,8 +18,22 @@ export interface AuthenticatedUser {
   role: Role;
 }
 
+/**
+ * The user as the app receives them.
+ *
+ * Not `AuthenticatedUser`: that is the set of claims carried in the token, and
+ * a display name and avatar have no business being in a JWT.
+ */
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  avatarUrl: string | null;
+}
+
 export interface AuthResult {
-  user: AuthenticatedUser;
+  user: AuthUser;
   accessToken: string;
   refreshToken: IssuedRefreshToken;
 }
@@ -71,7 +85,13 @@ export const register = async (input: RegisterInput): Promise<AuthResult> => {
   const { accessToken, refreshToken } = await issueTokens(user);
 
   return {
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
+    },
     accessToken,
     refreshToken,
   };
@@ -93,7 +113,13 @@ export const login = async (email: string, password: string): Promise<AuthResult
   const { accessToken, refreshToken } = await issueTokens(user);
 
   return {
-    user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
+    },
     accessToken,
     refreshToken,
   };
@@ -156,6 +182,7 @@ export const refresh = async (presentedToken: string): Promise<AuthResult> => {
       name: stored.user.name,
       email: stored.user.email,
       role: stored.user.role,
+      avatarUrl: stored.user.avatarUrl,
     },
     accessToken,
     refreshToken,
@@ -173,7 +200,15 @@ export const logout = async (presentedToken: string | undefined): Promise<void> 
 export const getCurrentUser = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isActive: true,
+      avatarUrl: true,
+      createdAt: true,
+    },
   });
   if (!user) throw ApiError.notFound("User not found");
   return user;
