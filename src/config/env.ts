@@ -63,6 +63,16 @@ const envSchema = z.object({
    */
   SUBMISSION_RATE_REQUEST_LIMIT: z.coerce.number().int().positive().default(20),
 
+  // ---- automatic imagery ----
+  /**
+   * Unsplash, used to find a picture for a submission that arrived without one.
+   * Without it the server falls back to a curated photograph per category, so
+   * an entry always has something to show.
+   */
+  UNSPLASH_ACCESS_KEY: z.string().optional(),
+  /** A missing picture must never hold up a submission. */
+  AUTO_IMAGE_TIMEOUT_MS: z.coerce.number().int().positive().default(5_000),
+
   // ---- media (Cloudinary) ----
   /**
    * Avatar uploads are optional: without these the endpoint answers 503 rather
