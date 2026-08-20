@@ -1,6 +1,7 @@
 import { disconnectPrisma, prisma } from "./config/prisma";
 import { Role } from "./generated/prisma/client";
 import { hashPassword } from "./utils/password";
+import { attachAutoImage } from "./modules/image/image.service";
 
 /**
  * Development seed: one account per role, so every role gate has something to
@@ -39,6 +40,52 @@ const runSeed = async () => {
   }
 
   console.log(`\n${ACCOUNTS.length} accounts ready (password: ${DEFAULT_PASSWORD})`);
+
+  await backfillImages();
+};
+
+/**
+ * Give anything that predates the image table a photograph.
+ *
+ * New submissions get one on the way in, but everything already in the
+ * catalogue was created before that existed, and an empty gallery on every
+ * entry looks like a broken feature rather than like nobody has uploaded
+ * anything yet.
+ *
+ * Idempotent: an entry that already has one is left alone.
+ */
+const backfillImages = async () => {
+  const [destinations, places] = await Promise.all([
+    prisma.destination.findMany({
+      where: { images: { none: {} } },
+      select: { id: true, name: true, country: true },
+    }),
+    prisma.place.findMany({
+      where: { images: { none: {} } },
+      select: { id: true, name: true, category: true, destination: { select: { name: true } } },
+    }),
+  ]);
+
+  for (const destination of destinations) {
+    await attachAutoImage(
+      { destinationId: destination.id },
+      destination.name + " " + destination.country,
+      "CITY",
+    );
+  }
+
+  for (const place of places) {
+    await attachAutoImage(
+      { placeId: place.id },
+      place.name + " " + place.destination.name,
+      place.category,
+    );
+  }
+
+  const total = destinations.length + places.length;
+  console.log(
+    total === 0 ? "every entry already has a photograph" : "added " + total + " photographs",
+  );
 };
 
 runSeed()
