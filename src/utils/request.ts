@@ -39,3 +39,12 @@ export const requireUser = (req: Request): AuthenticatedUser => {
 };
 
 export const requireUserId = (req: Request): string => requireUser(req).id;
+
+/**
+ * The signed-in user, or nobody.
+ *
+ * For routes mounted with `authenticateOptional`, where being anonymous is a
+ * normal case rather than a failure - browsing the catalogue, for instance,
+ * where a token only changes whether your own pending submissions are visible.
+ */
+export const optionalUser = (req: Request): AuthenticatedUser | null => req.user ?? null;
