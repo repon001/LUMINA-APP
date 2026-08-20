@@ -1,9 +1,10 @@
 import { Role } from "../../generated/prisma/client";
+import { destroyUpload } from "../../config/cloudinary";
 import { prisma } from "../../config/prisma";
 import { ApiError } from "../../utils/api-error";
-import { hashPassword } from "../../utils/password";
+import { hashPassword, verifyPassword } from "../../utils/password";
 import { buildListQuery, type ListQueryConfig } from "../../utils/query-builder";
-import type { CreateUserInput, UpdateUserInput } from "./user.validation";
+import type { CreateUserInput, UpdateProfileInput, UpdateUserInput } from "./user.validation";
 
 /** Never select passwordHash - it must not leave the service layer. */
 const USER_SELECT = {
@@ -12,6 +13,7 @@ const USER_SELECT = {
   email: true,
   role: true,
   isActive: true,
+  avatarUrl: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -98,5 +100,89 @@ export const updateUser = async (id: string, input: UpdateUserInput, actingUserI
     });
   }
 
+  return updated;
+};
+
+/**
+ * A user editing their own account.
+ *
+ * Changing a password needs the current one, even though the request is already
+ * authenticated: an access token left open on a shared machine should not be
+ * enough to lock the owner out of their own account.
+ */
+export const updateMyProfile = async (userId: string, input: UpdateProfileInput) => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw ApiError.notFound("User not found");
+
+  if (input.password !== undefined) {
+    const correct = await verifyPassword(input.currentPassword ?? "", user.passwordHash);
+    if (!correct) throw ApiError.badRequest("That is not your current password");
+  }
+
+  if (input.email && input.email !== user.email) {
+    const clash = await prisma.user.findUnique({ where: { email: input.email } });
+    if (clash) throw ApiError.conflict("A user with this email already exists");
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.email !== undefined ? { email: input.email } : {}),
+      ...(input.password !== undefined ? { passwordHash: await hashPassword(input.password) } : {}),
+    },
+    select: USER_SELECT,
+  });
+
+  // A new password ends every other session, which is the point of changing it.
+  if (input.password !== undefined) {
+    await prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  return updated;
+};
+
+/**
+ * Point a user at a freshly uploaded avatar, and tidy away the one it replaced.
+ *
+ * The delete happens after the update, never before: if it ran first and the
+ * update then failed, the user would be left pointing at a file that no longer
+ * exists.
+ */
+export const setMyAvatar = async (userId: string, file: { url: string; publicId: string }) => {
+  const current = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { avatarPublicId: true },
+  });
+  if (!current) throw ApiError.notFound("User not found");
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl: file.url, avatarPublicId: file.publicId },
+    select: USER_SELECT,
+  });
+
+  await destroyUpload(current.avatarPublicId);
+  return updated;
+};
+
+/** Back to the initials. */
+export const removeMyAvatar = async (userId: string) => {
+  const current = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { avatarPublicId: true },
+  });
+  if (!current) throw ApiError.notFound("User not found");
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { avatarUrl: null, avatarPublicId: null },
+    select: USER_SELECT,
+  });
+
+  await destroyUpload(current.avatarPublicId);
   return updated;
 };
