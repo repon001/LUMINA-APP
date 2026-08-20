@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { sendPaginated, sendResponse } from "../../utils/api-response";
 import { catchAsync } from "../../utils/catch-async";
-import { param } from "../../utils/request";
+import { optionalUser, param, requireUser } from "../../utils/request";
 import * as placeService from "./place.service";
 import type { CreatePlaceInput, NearbyPlacesQuery, UpdatePlaceInput } from "./place.validation";
 
@@ -29,7 +29,7 @@ export const PlaceController = {
   }),
 
   getOne: catchAsync(async (req: Request, res: Response) => {
-    const place = await placeService.getPlace(param(req, "id"));
+    const place = await placeService.getPlace(param(req, "id"), optionalUser(req));
     sendResponse(res, {
       statusCode: 200,
       success: true,
@@ -39,11 +39,12 @@ export const PlaceController = {
   }),
 
   create: catchAsync(async (req: Request, res: Response) => {
-    const place = await placeService.createPlace(req.body as CreatePlaceInput);
+    const place = await placeService.createPlace(req.body as CreatePlaceInput, requireUser(req));
     sendResponse(res, {
       statusCode: 201,
       success: true,
-      message: "Place created",
+      // The only signal a contributor gets that their entry is not live yet.
+      message: place.status === "APPROVED" ? "Place created" : "Place submitted for review",
       data: place,
     });
   }),
