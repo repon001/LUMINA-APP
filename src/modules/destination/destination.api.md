@@ -1,17 +1,19 @@
 # Destination API
 
-Cities and regions a trip is built around. Reading is public; writing is ADMIN.
+Cities and regions a trip is built around. Reading is public. Anyone signed in
+may propose one, and it is held for review — see
+[moderation.api.md](../moderation/moderation.api.md).
 
 Postman setup (environment, token) is in [docs/POSTMAN.md](../../../docs/POSTMAN.md).
 
-| Method | Path                          | Auth   | Purpose                    |
-| ------ | ----------------------------- | ------ | -------------------------- |
-| GET    | `/api/destinations`           | public | List, search, filter, page |
-| GET    | `/api/destinations/nearby`    | public | Proximity search           |
-| GET    | `/api/destinations/:idOrSlug` | public | One destination            |
-| POST   | `/api/destinations`           | ADMIN  | Create                     |
-| PATCH  | `/api/destinations/:id`       | ADMIN  | Update                     |
-| DELETE | `/api/destinations/:id`       | ADMIN  | Delete (only when empty)   |
+| Method | Path                          | Auth      | Purpose                      |
+| ------ | ----------------------------- | --------- | ---------------------------- |
+| GET    | `/api/destinations`           | public    | List, search, filter, page   |
+| GET    | `/api/destinations/nearby`    | public    | Proximity search             |
+| GET    | `/api/destinations/:idOrSlug` | public    | One destination              |
+| POST   | `/api/destinations`           | Signed-in | Create, or submit for review |
+| PATCH  | `/api/destinations/:id`       | ADMIN     | Update                       |
+| DELETE | `/api/destinations/:id`       | ADMIN     | Delete (only when empty)     |
 
 ---
 
@@ -97,7 +99,7 @@ are the same record. Includes the full row plus `_count.places`.
 
 `404 NOT_FOUND` when neither matches.
 
-## POST /api/destinations — ADMIN
+## POST /api/destinations — any signed-in user
 
 ```json
 {

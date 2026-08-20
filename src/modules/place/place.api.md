@@ -1,19 +1,21 @@
 # Place API
 
 Everything inside a destination: attractions, hotels, restaurants, activities,
-shopping, nightlife, transport. Reading is public; writing is ADMIN.
+shopping, nightlife, transport. Reading is public. Anyone signed in may propose
+one, and it is held for review — see
+[moderation.api.md](../moderation/moderation.api.md).
 
 Postman setup: [docs/POSTMAN.md](../../../docs/POSTMAN.md). Design notes:
 [place.md](./place.md).
 
-| Method | Path                 | Auth   | Purpose                    |
-| ------ | -------------------- | ------ | -------------------------- |
-| GET    | `/api/places`        | public | List, search, filter, page |
-| GET    | `/api/places/nearby` | public | What is around me          |
-| GET    | `/api/places/:id`    | public | One place with its city    |
-| POST   | `/api/places`        | ADMIN  | Create                     |
-| PATCH  | `/api/places/:id`    | ADMIN  | Update                     |
-| DELETE | `/api/places/:id`    | ADMIN  | Delete                     |
+| Method | Path                 | Auth      | Purpose                      |
+| ------ | -------------------- | --------- | ---------------------------- |
+| GET    | `/api/places`        | public    | List, search, filter, page   |
+| GET    | `/api/places/nearby` | public    | What is around me            |
+| GET    | `/api/places/:id`    | public    | One place with its city      |
+| POST   | `/api/places`        | Signed-in | Create, or submit for review |
+| PATCH  | `/api/places/:id`    | ADMIN     | Update                       |
+| DELETE | `/api/places/:id`    | ADMIN     | Delete                       |
 
 Categories: `ATTRACTION`, `HOTEL`, `RESTAURANT`, `ACTIVITY`, `SHOPPING`,
 `NIGHTLIFE`, `TRANSPORT`, `OTHER`.
@@ -92,7 +94,7 @@ widening to `10` with `category=HOTEL` returns Park Hyatt at `3.02` km.
 The full row plus its destination (`id`, `slug`, `name`, `timezone`). `404` if
 the id is unknown.
 
-## POST /api/places — ADMIN
+## POST /api/places — any signed-in user
 
 ```json
 {
@@ -118,7 +120,8 @@ the id is unknown.
 | Unknown category, name < 2, bad coordinates | `422 VALIDATION_ERROR` |
 | `destinationId` matches nothing             | `404 NOT_FOUND`        |
 | `slug` you sent is taken in that city       | `409 CONFLICT`         |
-| Not signed in / not ADMIN                   | `401` / `403`          |
+| Not signed in                               | `401`                  |
+| Same name within 200 m in that destination  | `409`                  |
 
 ## PATCH /api/places/:id — ADMIN
 
