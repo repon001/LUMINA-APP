@@ -57,6 +57,20 @@ const envSchema = z.object({
    */
   PAYMENT_ALLOW_STUB: boolish(true),
 
+  // ---- media (Cloudinary) ----
+  /**
+   * Avatar uploads are optional: without these the endpoint answers 503 rather
+   * than the app failing to boot, which keeps the rest of the API usable on a
+   * machine that has no media credentials.
+   */
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+  /** Everything this app uploads lands under one folder in the account. */
+  CLOUDINARY_FOLDER: z.string().default("lumina/avatars"),
+  /** Bigger than any sensible avatar, small enough to refuse a video. */
+  AVATAR_MAX_BYTES: z.coerce.number().int().positive().default(5 * 1024 * 1024),
+
   // ---- AI (OpenRouter) ----
   OPENROUTER_API_KEY: z.string().optional(),
   /**

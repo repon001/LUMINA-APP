@@ -11,6 +11,12 @@ model User {
   passwordHash String
   role         Role     @default(USER)
   isActive     Boolean  @default(true)
+
+  /// Delivered by Cloudinary. Null until the user uploads one.
+  avatarUrl    String?
+  /// Cloudinary's handle for the same file, kept so replacing an avatar can
+  /// delete the one it replaced instead of leaving it orphaned in the account.
+  avatarPublicId String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
