@@ -1,0 +1,65 @@
+# Render blueprint for the LUMINA API.
+#
+# The database is not defined here: this app uses Neon, which is already
+# provisioned and holds the data. Render only runs the API.
+#
+# Import this file on Render with "New > Blueprint", then fill in the values
+# marked `sync: false` - those are secrets, and are deliberately not in git.
+services:
+  - type: web
+    name: lumina-api
+    runtime: node
+    plan: free
+    region: oregon
+
+    # Migrations run here rather than in a pre-deploy step, which the free plan
+    # does not offer. `migrate deploy` only applies what is missing, so running
+    # it on every build is safe.
+    buildCommand: npm ci && npm run build && npx prisma migrate deploy
+    startCommand: npm start
+
+    # Render restarts the service if this stops answering.
+    healthCheckPath: /health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Render injects a port and expects the app to bind it. The app reads
+      # PORT already, so nothing else is needed.
+
+      # ---- secrets: set these in the Render dashboard ----
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: DATABASE_SCHEMA
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+
+      # Which origins the browser app may call from. No trailing slashes.
+      - key: CORS_ORIGINS
+        sync: false
+
+      # Where the API is reachable, used to build payment return URLs.
+      - key: PUBLIC_BASE_URL
+        sync: false
+
+      # ---- optional: features switch themselves off without these ----
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: UNSPLASH_ACCESS_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
