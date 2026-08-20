@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { sendPaginated, sendResponse } from "../../utils/api-response";
 import { catchAsync } from "../../utils/catch-async";
-import { param } from "../../utils/request";
+import { optionalUser, param, requireUser } from "../../utils/request";
 import * as destinationService from "./destination.service";
 import type {
   CreateDestinationInput,
@@ -29,7 +29,10 @@ export const DestinationController = {
   }),
 
   getOne: catchAsync(async (req: Request, res: Response) => {
-    const destination = await destinationService.getDestination(param(req, "idOrSlug"));
+    const destination = await destinationService.getDestination(
+      param(req, "idOrSlug"),
+      optionalUser(req),
+    );
     sendResponse(res, {
       statusCode: 200,
       success: true,
@@ -41,11 +44,18 @@ export const DestinationController = {
   create: catchAsync(async (req: Request, res: Response) => {
     const destination = await destinationService.createDestination(
       req.body as CreateDestinationInput,
+      requireUser(req),
     );
+
     sendResponse(res, {
       statusCode: 201,
       success: true,
-      message: "Destination created",
+      // The message is the only signal a contributor gets that their entry is
+      // not live yet, so it says so rather than just "created".
+      message:
+        destination.status === "APPROVED"
+          ? "Destination created"
+          : "Destination submitted for review",
       data: destination,
     });
   }),

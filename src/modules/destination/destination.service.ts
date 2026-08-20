@@ -1,8 +1,14 @@
-import type { Prisma } from "../../generated/prisma/client";
+import { ModerationStatus, type Prisma } from "../../generated/prisma/client";
 import { prisma } from "../../config/prisma";
 import { ApiError } from "../../utils/api-error";
 import { boundingBox, distanceKm, roundKm } from "../../utils/geo";
 import { buildListQuery, type ListQueryConfig } from "../../utils/query-builder";
+import {
+  APPROVED_ONLY,
+  canSeeUnapproved,
+  statusForSubmission,
+  type Viewer,
+} from "../moderation/moderation.access";
 import { uniqueSlug } from "../../utils/slug";
 import type {
   CreateDestinationInput,
@@ -60,22 +66,38 @@ const isDestinationSlugTaken = async (candidate: string, exceptId?: string) => {
 export const listDestinations = async (query: Record<string, unknown>) => {
   const { where, orderBy, skip, take, page, limit } = buildListQuery(query, LIST_CONFIG);
 
+  // Merged after the caller's filters, never taken from them.
+  const publicWhere = { ...where, ...APPROVED_ONLY };
+
   const [items, total] = await Promise.all([
-    prisma.destination.findMany({ where, orderBy, skip, take, select: CARD_SELECT }),
-    prisma.destination.count({ where }),
+    prisma.destination.findMany({ where: publicWhere, orderBy, skip, take, select: CARD_SELECT }),
+    prisma.destination.count({ where: publicWhere }),
   ]);
 
   return { items, total, page, limit };
 };
 
-/** Accepts either the cuid or the slug, so a client can link by name. */
-export const getDestination = async (idOrSlug: string) => {
+/**
+ * Accepts either the cuid or the slug, so a client can link by name.
+ *
+ * A destination still in the queue is visible to its submitter and to
+ * moderators. To everyone else it does not exist yet.
+ */
+export const getDestination = async (idOrSlug: string, viewer: Viewer | null = null) => {
   const destination = await prisma.destination.findFirst({
     where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
     include: { _count: { select: { places: true } } },
   });
 
   if (!destination) throw ApiError.notFound("Destination not found");
+
+  if (
+    destination.status !== ModerationStatus.APPROVED &&
+    !canSeeUnapproved(viewer, destination.submittedById)
+  ) {
+    throw ApiError.notFound("Destination not found");
+  }
+
   return destination;
 };
 
@@ -86,6 +108,7 @@ export const findNearbyDestinations = async ({ lat, lng, radiusKm, limit }: Near
   const candidates = await prisma.destination.findMany({
     where: {
       isActive: true,
+      ...APPROVED_ONLY,
       latitude: { gte: box.minLatitude, lte: box.maxLatitude },
       longitude: { gte: box.minLongitude, lte: box.maxLongitude },
     },
@@ -111,12 +134,15 @@ export const findNearbyDestinations = async ({ lat, lng, radiusKm, limit }: Near
   );
 };
 
-export const createDestination = async (input: CreateDestinationInput) => {
+export const createDestination = async (input: CreateDestinationInput, submitter: Viewer) => {
   const slug = input.slug ?? (await uniqueSlug(input.name, (c) => isDestinationSlugTaken(c)));
 
   if (input.slug && (await isDestinationSlugTaken(input.slug))) {
     throw ApiError.conflict("A destination with this slug already exists");
   }
+
+  const status = statusForSubmission(submitter);
+  const isModerator = status === ModerationStatus.APPROVED;
 
   return prisma.destination.create({
     data: {
@@ -131,7 +157,13 @@ export const createDestination = async (input: CreateDestinationInput) => {
       currencyCode: input.currencyCode ?? null,
       coverImageUrl: input.coverImageUrl ?? null,
       tags: input.tags ?? [],
-      isFeatured: input.isFeatured ?? false,
+      // Only a moderator gets to decide this; a submission is never featured.
+      isFeatured: isModerator ? (input.isFeatured ?? false) : false,
+      status,
+      submittedById: submitter.id,
+      ...(status === ModerationStatus.APPROVED
+        ? { reviewedById: submitter.id, reviewedAt: new Date() }
+        : {}),
     },
   });
 };

@@ -2,7 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { DestinationController } from "./destination.controller";
 import { Role } from "../../generated/prisma/client";
-import { authenticate, authorize } from "../../middleware/auth";
+import { authenticate, authenticateOptional, authorize } from "../../middleware/auth";
+import { submissionLimiter } from "../../middleware/rate-limit";
 import { validate } from "../../middleware/validate";
 import { idParamSchema } from "../../utils/common.validation";
 import {
@@ -19,17 +20,21 @@ router.get("/", DestinationController.list);
 // Must be declared before "/:idOrSlug", or "nearby" is read as a slug.
 router.get("/nearby", validate({ query: nearbyQuerySchema }), DestinationController.nearby);
 
+// Optional auth: anyone may read an approved destination, and a token only
+// changes whether your own submission is visible while it waits for review.
 router.get(
   "/:idOrSlug",
+  authenticateOptional,
   validate({ params: z.object({ idOrSlug: z.string().min(1) }) }),
   DestinationController.getOne,
 );
 
-// The catalogue is curated, so writing to it is an admin job.
+// Anyone signed in may propose a destination. It is held for review unless a
+// moderator submitted it - see moderation.access.ts.
 router.post(
   "/",
   authenticate,
-  authorize(Role.ADMIN),
+  submissionLimiter,
   validate({ body: createDestinationSchema }),
   DestinationController.create,
 );
