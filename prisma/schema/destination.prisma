@@ -26,11 +26,27 @@ model Destination {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
+  /// Public listings show APPROVED only. See moderation.prisma.
+  status        ModerationStatus @default(PENDING)
+  submittedById String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  /// Why it was turned down. Shown to whoever submitted it.
+  reviewNote    String?
+
   places    Place[]
   tripStops TripStop[]
 
+  /// SetNull, not Cascade: a deleted account must not take the city it
+  /// contributed down with it.
+  submittedBy User? @relation("DestinationSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedBy  User? @relation("DestinationReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
+
   @@index([countryCode])
   @@index([isFeatured, isActive])
+  // Serves the moderation queue: oldest pending first.
+  @@index([status, createdAt])
+  @@index([submittedById])
   // Serves the bounding-box scan behind "destinations near me".
   @@index([latitude, longitude])
 }

@@ -43,13 +43,29 @@ model Place {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// Public listings show APPROVED only. See moderation.prisma.
+  status        ModerationStatus @default(PENDING)
+  submittedById String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  /// Why it was turned down. Shown to whoever submitted it.
+  reviewNote    String?
+
   destination    Destination     @relation(fields: [destinationId], references: [id], onDelete: Cascade)
   itineraryItems ItineraryItem[]
   expenses       Expense[]
   payments       Payment[]
 
+  /// SetNull, not Cascade: a deleted account must not take the places it
+  /// contributed down with it.
+  submittedBy User? @relation("PlaceSubmissions", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedBy  User? @relation("PlaceReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
+
   @@unique([destinationId, slug])
   @@index([destinationId, category])
   @@index([latitude, longitude])
   @@index([category, ratingAvg])
+  // Serves the moderation queue: oldest pending first.
+  @@index([status, createdAt])
+  @@index([submittedById])
 }

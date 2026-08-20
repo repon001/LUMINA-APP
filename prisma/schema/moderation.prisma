@@ -1,0 +1,10 @@
+/// Where a submission is in review.
+///
+/// Anyone signed in may propose a destination or a place; it stays PENDING and
+/// invisible to the public until a moderator looks at it. Submissions made by a
+/// moderator or admin skip the queue and land APPROVED.
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

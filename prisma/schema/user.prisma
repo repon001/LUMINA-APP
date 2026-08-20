@@ -25,6 +25,13 @@ model User {
   expenses      Expense[]
   payments      Payment[]
 
+  /// What they contributed to the catalogue, and what they reviewed if they
+  /// are a moderator.
+  submittedDestinations Destination[] @relation("DestinationSubmissions")
+  reviewedDestinations  Destination[] @relation("DestinationReviews")
+  submittedPlaces       Place[]       @relation("PlaceSubmissions")
+  reviewedPlaces        Place[]       @relation("PlaceReviews")
+
   @@index([role])
 }
 
