@@ -57,6 +57,12 @@ const envSchema = z.object({
    */
   PAYMENT_ALLOW_STUB: boolish(true),
 
+  /**
+   * Catalogue submissions per user, per window. Every one becomes work for a
+   * moderator, so it is bounded well below the general request budget.
+   */
+  SUBMISSION_RATE_REQUEST_LIMIT: z.coerce.number().int().positive().default(20),
+
   // ---- media (Cloudinary) ----
   /**
    * Avatar uploads are optional: without these the endpoint answers 503 rather

@@ -53,3 +53,20 @@ export const aiLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
   handler: rejectWith429,
 });
+
+/**
+ * Applied to catalogue submissions.
+ *
+ * Keyed per user like the AI routes, because every submission becomes work for
+ * a human moderator. The budget is generous enough for someone adding the
+ * places they visited on a trip, and tight enough that a script cannot bury the
+ * queue faster than anyone can read it.
+ */
+export const submissionLimiter = rateLimit({
+  windowMs,
+  limit: env.SUBMISSION_RATE_REQUEST_LIMIT,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.id ?? ipKeyGenerator(req.ip ?? ""),
+  handler: rejectWith429,
+});
