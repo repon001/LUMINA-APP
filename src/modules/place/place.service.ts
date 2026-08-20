@@ -10,6 +10,7 @@ import {
   type Viewer,
 } from "../moderation/moderation.access";
 import { uniqueSlug } from "../../utils/slug";
+import { attachAutoImage } from "../image/image.service";
 import type { CreatePlaceInput, NearbyPlacesQuery, UpdatePlaceInput } from "./place.validation";
 
 const LIST_CONFIG: ListQueryConfig = {
@@ -104,7 +105,13 @@ export const listPlaces = async (query: Record<string, unknown>) => {
 export const getPlace = async (id: string, viewer: Viewer | null = null) => {
   const place = await prisma.place.findUnique({
     where: { id },
-    include: { destination: { select: { id: true, slug: true, name: true, timezone: true } } },
+    include: {
+      destination: { select: { id: true, slug: true, name: true, timezone: true } },
+      images: {
+        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+        select: { id: true, url: true },
+      },
+    },
   });
 
   if (!place) throw ApiError.notFound("Place not found");
@@ -215,7 +222,7 @@ export const createPlace = async (input: CreatePlaceInput, submitter: Viewer) =>
 
   const status = statusForSubmission(submitter);
 
-  return prisma.place.create({
+  const created = await prisma.place.create({
     data: {
       destinationId: input.destinationId,
       slug,
@@ -240,6 +247,16 @@ export const createPlace = async (input: CreatePlaceInput, submitter: Viewer) =>
     },
     select: SUBMISSION_SELECT,
   });
+
+  // Same as destinations: found now rather than later, so the entry never
+  // appears without a picture and then grows one.
+  await attachAutoImage(
+    { placeId: created.id },
+    `${created.name} ${created.destination.name}`,
+    created.category,
+  );
+
+  return created;
 };
 
 export const updatePlace = async (id: string, input: UpdatePlaceInput) => {

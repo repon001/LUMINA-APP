@@ -10,6 +10,7 @@ import {
   type Viewer,
 } from "../moderation/moderation.access";
 import { uniqueSlug } from "../../utils/slug";
+import { attachAutoImage } from "../image/image.service";
 import type {
   CreateDestinationInput,
   NearbyQuery,
@@ -86,7 +87,13 @@ export const listDestinations = async (query: Record<string, unknown>) => {
 export const getDestination = async (idOrSlug: string, viewer: Viewer | null = null) => {
   const destination = await prisma.destination.findFirst({
     where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
-    include: { _count: { select: { places: true } } },
+    include: {
+      _count: { select: { places: true } },
+      images: {
+        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+        select: { id: true, url: true },
+      },
+    },
   });
 
   if (!destination) throw ApiError.notFound("Destination not found");
@@ -144,7 +151,7 @@ export const createDestination = async (input: CreateDestinationInput, submitter
   const status = statusForSubmission(submitter);
   const isModerator = status === ModerationStatus.APPROVED;
 
-  return prisma.destination.create({
+  const created = await prisma.destination.create({
     data: {
       slug,
       name: input.name,
@@ -166,6 +173,17 @@ export const createDestination = async (input: CreateDestinationInput, submitter
         : {}),
     },
   });
+
+  // Nobody uploaded one, so find one. Awaited rather than left running: the
+  // client shows the entry straight after this returns, and a card with no
+  // picture that fills in later reads as a bug.
+  await attachAutoImage(
+    { destinationId: created.id },
+    `${created.name} ${created.country}`,
+    "CITY",
+  );
+
+  return created;
 };
 
 export const updateDestination = async (id: string, input: UpdateDestinationInput) => {
